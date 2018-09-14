@@ -1,0 +1,35 @@
+---
+# vars file for zkvm-compute
+controller_ip: 192.168.0.2
+
+osa_device: "2000"
+osa_device_full: "2000-2002"
+ovs_bridge: "br0"
+
+controller_nova_conf_path: "/root/zkvm/files/nova.conf"
+controller_neutron_conf_path: "/root/zkvm/files/neutron.conf"
+controller_neutron_ml2_conf_path: "/root/zkvm/files/ml2_conf.ini"
+
+ansible_tmp_dir: "/tmp/ansible/"
+
+
+sles12sp3_repos:
+  os-dvd1: ftp://linuxone:password@192.168.0.1/repo/sles/os/dvd1
+  os-dvd2: ftp://linuxone:password@192.168.0.1/repo/sles/os/dvd2
+  os-dvd3: ftp://linuxone:password@192.168.0.1/repo/sles/os/dvd3
+  prod-sdk: ftp://linuxone:password@192.168.0.1/repo/sles/scc/Products/SLE-SDK/12-SP3/s390x/product
+  prod-server: ftp://linuxone:password@192.168.0.1/repo/sles/scc/Products/SLE-SERVER/12-SP3/s390x/product
+  update-module-public-cloud: ftp://linuxone:password@192.168.0.1/repo/sles/scc/Updates/SLE-Module-Public-Cloud/12/s390x/update
+  update-sdk: ftp://linuxone:password@192.168.0.1/repo/sles/scc/Updates/SLE-SDK/12-SP3/s390x/update
+  update-server: ftp://linuxone:password@192.168.0.1/repo/sles/scc/Updates/SLE-SERVER/12-SP3/s390x/update
+  openstack-ocata: ftp://linuxone:password@192.168.0.1/repo/openstack/Ocata/SLE_12_SP3  
+
+lpar_net_dev_list:
+  - "0009"
+  - "000c"
+  - "000f"
+  - "0012"
+  - "0015"
+  - "0018"
+  - "001b"
+  - "001e"

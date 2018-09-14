@@ -1,0 +1,228 @@
+---
+# tasks file for LinuxONE compute node
+- name: Set name server
+  lineinfile:
+    path: /etc/resolv.conf
+    line: "nameserver {{ nameserver_ip }}"
+
+# TODO: set http proxy
+
+- name: Add OpenStack repo
+  zypper_repository:
+    name: openstack-ocata
+    repo: obs://Cloud:OpenStack:Ocata/SLE_12_SP3
+    disable_gpg_check: yes
+    autorefresh: yes
+
+- name: Add sles12sp3 dvd1 repo
+  zypper_repository:
+    name: sles12sp3-dvd1
+    repo: nfs://9.60.18.240/nfs/sles12sp3/dvd1
+    disable_gpg_check: yes
+    autorefresh: yes
+
+- name: Update all packages
+  zypper:
+    name: "*"
+    state: latest
+
+- name: Install ntp
+  zypper:
+    name: ntp
+    state: installed
+    update_cache: true
+
+- name: Start ntpd
+  service:
+    name: ntpd
+    state: started
+
+- name: Update etc hosts
+  lineinfile:
+    path: /etc/hosts
+    insertafter: EOF
+    line: "{{ controller_ip }} controller"
+
+- name: Load nbd module
+  modprobe:
+    name: nbd
+
+- name: Enable nbd permenently
+  lineinfile:
+    path: /etc/modules-load.d/nbd.conf
+    line: nbd
+    create: yes
+
+- name: Unmask OSA device
+  command: cio_ignore -r {{ osa_device_full }}
+
+- name: Check OSA device state
+  shell: "znetconf -c | grep {{ osa_device }} | grep online | wc --lines"
+  register: osa_configured
+  changed_when: False
+
+- name: Config OSA device
+  command: znetconf -a "{{ osa_device }}"
+  when: osa_configured.stdout == '0'
+
+- name: Get OSA interface name
+  shell: "lsqeth -p | grep {{ osa_device }} | awk '{print $3}'"
+  register: osa_ifname
+  changed_when: False
+
+- name: Get OSA mac addr
+  shell: "cat  /sys/bus/ccwgroup/drivers/qeth/0.0.{{ osa_device }}/net/{{ osa_ifname.stdout }}/address"
+  register: osa_mac_addr
+  changed_when: False
+
+- name: Check OSA layer 2 value
+  shell: "cat /sys/bus/ccwgroup/drivers/qeth/0.0.{{ osa_device }}/layer2"
+  register: osa_layer2
+  changed_when: False
+  failed_when: osa_layer2.stdout != '1'
+
+- name: Check OSA card type
+  shell: "cat /sys/bus/ccwgroup/drivers/qeth/0.0.{{ osa_device }}/card_type"
+  register: osa_type
+  changed_when: False
+
+- name: Configure OSA bridge
+  shell: "echo secondary > /sys/bus/ccwgroup/drivers/qeth/0.0.{{ osa_device }}/bridge_role"
+  when: "'NIC' not in osa_type.stdout"
+
+- name: Configure NIC bridge
+  shell: "bridge fdb add {{ osa_mac_addr.stdout }} dev {{ osa_ifname.stdout }}"
+  register: cfg_nic_bridge
+  ignore_errors: True
+  when: "'NIC' in osa_type.stdout"
+  failed_when: cfg_nic_bridge.rc != 0 and 'File exists' not in cfg_nic_bridge.stderr
+  changed_when: cfg_nic_bridge.rc == 0
+
+- name: Install openvswitch
+  zypper:
+    name: openvswitch
+    state: installed
+
+- name: Enable and start openvswitch
+  systemd:
+    name: openvswitch
+    enabled: yes
+    state: started
+
+- name: Add ovs bridge
+  openvswitch_bridge:
+    bridge: "{{ ovs_bridge }}"
+    state: present
+
+- name: Add ovs port
+  openvswitch_port:
+    bridge: br0
+    port: "{{ osa_ifname.stdout }}"
+    state: present
+
+- name: Bring up osa interface
+  shell: "ifconfig {{ osa_ifname.stdout }} up"
+  changed_when: False
+
+- name: Bring up ovs bridge
+  shell: "ifconfig br0 up"
+  changed_when: False
+
+- name: Install genisoimage
+  zypper:
+    name: genisoimage
+    state: present
+
+- name: Install libvirt
+  zypper:
+    name: libvirt
+    state: present
+
+- name: Install qemu-kvm
+  zypper:
+    name: qemu-kvm
+    state: present
+
+- name: Install openstack-nova-compute
+  zypper:
+    name: openstack-nova-compute
+    state: present
+
+- name: Install neutron ovs agent
+  zypper:
+    name: openstack-neutron-openvswitch-agent
+    state: present
+
+- name: Config libvirtd
+  ini_file:
+    path: /etc/libvirt/libvirtd.conf
+    section: "{{ item.value.section }}"
+    option: "{{ item.key }}"
+    value: "{{ item.value.value }}"
+  with_dict: "{{ libvirtd_settings }}"
+
+- name: Copy nova.conf from controller
+  synchronize:
+    src: "{{ item.value.src }}"
+    dest: "{{ item.value.dest }}"
+  with_dict: "{{ config_files }}"
+  delegate_to: '{{ controller_ip }}'
+
+- name: Config nova.conf
+  ini_file:
+    path: /etc/nova/nova.conf
+    section: "{{ item.value.section }}"
+    option: "{{ item.key }}"
+    value: "{{ item.value.value }}"
+  with_dict: "{{ nova_settings }}"
+
+- name: Enable and start nova-compute
+  systemd:
+    name: openstack-nova-compute
+    enabled: yes
+    state: started
+
+- name: Add sles12sp3 sdk1 repo
+  zypper_repository:
+    name: sles12sp3-sdk1
+    repo: nfs://9.60.18.240/nfs/sles12sp3/sdk1
+    disable_gpg_check: yes
+    autorefresh: yes
+
+- name: Config neutron.conf
+  ini_file:
+    path: /etc/neutron/neutron.conf
+    section: "{{ item.value.section }}"
+    option: "{{ item.key }}"
+    value: "{{ item.value.value }}"
+  with_dict: "{{ neutron_settings }}"
+
+- name: Config neutron ml2_conf.ini
+  ini_file:
+    path: /etc/neutron/plugins/ml2/openvswitch_agent.ini
+    section: "{{ item.value.section }}"
+    option: "{{ item.value.opt }}"
+    value: "{{ item.value.value }}"
+  with_dict: "{{ neutron_ml2_settings }}"
+
+- name: Comment out bridge_mappings in neutron ml2_conf.ini
+  ini_file:
+    path: /etc/neutron/plugins/ml2/openvswitch_agent.ini
+    section: ovs
+    option: bridge_mappings
+    state: absent
+
+- name: Comment out firewall_driver  in neutron ml2_conf.ini
+  ini_file:
+    path: /etc/neutron/plugins/ml2/openvswitch_agent.ini
+    section: securitygroup
+    option: firewall_driver
+    state: absent
+
+
+- name: Enable and start openstack-neutron-openvswitch-agent
+  systemd:
+    name: openstack-neutron-openvswitch-agent
+    enabled: yes
+    state: started
+

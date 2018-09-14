@@ -1,0 +1,91 @@
+---
+# defaults file for zkvm-compute
+libvirtd_settings:
+  listen_tcp:
+    section: null
+    value: 1
+  auth_tcp:
+    section: null
+    value: '"none"'
+
+
+nova_settings:
+  my_ip:
+    section: "DEFAULT"
+    value: "{{ ansible_all_ipv4_addresses[0] }}"
+  config_drive_format:
+    section: "DEFAULT"
+    value: "iso9660"
+  force_config_drive:
+    section: "DEFAULT"
+    value: "True"
+  log_dir:
+    section: "DEFAULT"
+    value: "/var/log/nova"
+  virt_type:
+    section: "libvirt"
+    value: "kvm"
+  cpu_mode:
+    section: "libvirt"
+    value: "none"
+  pointer_model:
+    section: "DEFAULT"
+    value: "ps2mouse"
+  use_usb_tablet:
+    section: "libvirt"
+    value: "False"
+  inject_partition:
+    section: "libvirt"
+    value: "-2"
+  connection_uri:
+    section: "libvirt"
+    value: "qemu+tcp://{{ ansible_all_ipv4_addresses[0] }}/system"
+  enabled:
+    section: "vnc"
+    value: "False"
+  compute_driver:
+    section: "DEFAULT"
+    value: "libvirt.LibvirtDriver"
+
+neutron_settings:
+  log_dir:
+    section: "DEFAULT"
+    value: "/var/log/neutron"
+
+neutron_ml2_settings:
+#  flat_networks:
+#    opt: "flat_networks"
+#    section: "ml2_type_flat"
+#    value: "*"
+#  bridge_mappings:
+#    opt: "bridge_mappings"
+#    section: "ovs"
+#    value: "provider:{{ ovs_bridge }}"
+  local_ip_ovs:
+    opt: "local_ip"
+    section: "ovs"
+    value: "{{ ansible_all_ipv4_addresses[0] }}"
+#  enable_vxlan:
+#    opt: "enable_vxlan"
+#    section: "VXLAN"
+#    value: "True"
+#  l2_population:
+#    opt: "l2_population"
+#    section: "VXLAN"
+#    value: "True"
+ # local_ip_vxlan:
+#    opt: "local_ip"
+#    section: "VXLAN"
+#    value: "{{ ansible_all_ipv4_addresses[0] }}"
+
+config_files:
+  nova_conf:
+    src: "{{ controller_nova_conf_path }}"
+    dest: /etc/nova/nova.conf
+  neutron_conf:
+    src: "{{ controller_neutron_conf_path }}"
+    dest: /etc/neutron/neutron.conf
+  neutron_ml2_ini:
+    src: "{{ controller_neutron_ml2_conf_path }}"
+    dest: /etc/neutron/plugins/ml2/openvswitch_agent.ini
+
