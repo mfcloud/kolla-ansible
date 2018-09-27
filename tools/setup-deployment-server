@@ -1,0 +1,279 @@
+#!/bin/bash
+#
+# This script can be used to setup the deployment server before using kolla-ansible to deploy.
+# Including setup docker image registry, local package repo, local pypi server, install
+# kolla-ansible and its dependencies.
+
+
+function usage {
+    cat <<EOF
+Usage: $0 [options]
+
+Options:
+    --repo-port, -r <repository_port>          Specify the port to be used by the local package repository server, default is 8000
+    --pypi-port, -p <pypi_port>                Specify the port to be used by the local pypi server, default is 8080
+    --docker-registry-port, -d <registry_port> Specify the port to be used by the local docker registry server, default is 5000
+    --base-dir, -b <CE_base_dir>               Specify the base directory, default is /data
+    --bind-addr, -a <bind_ip_addr>             Specify the ip addr of the deployment server used to communicate with target nodes.
+                                               If not specified, will try to automatically get the address using ifconfig and exclude
+                                               the address 127.0.0.1 and 172.17.0.1(which is used by docker0).
+                                               If two or more address are filtered, will abort.
+    --help, -h                                 Show this usage information
+EOF
+}
+
+function section {
+    echo ""
+    echo "#####################################################################"
+    echo "$1"
+    echo "#####################################################################"
+    echo ""
+}
+
+
+function check_status {
+    rc=$1
+    action=""
+    if [[ $# -eq 2 ]]; then
+        action=$2
+    fi
+    if [[ $rc -ne 0 ]]; then
+        echo "$action: Failed."
+        echo "Aborting."
+        exit 1
+    else
+        echo "$action: Successfully."
+    fi
+}
+
+
+function find_containers_to_kill {
+    existed_containers=$(docker ps --format "{{.Names}}" -a)
+    if [ "${existed_containers}" == "" ]; then
+        echo ""
+        return
+    fi
+    target_containers=($REPO_SERVER $DOCKER_REGISTRY $PYPI_SERVER)
+    containers_to_kill=""
+    for c in ${target_containers[@]}; do
+        if [ $(echo "${existed_containers[@]}" | grep -wq $c && echo $?) -eq 0 ]; then
+            containers_to_kill=${containers_to_kill}" "$c
+        fi
+    done
+    echo "$containers_to_kill"
+}
+
+
+function get_bind_addr {
+    if [[ "$BIND_ADDR" != "" ]] ; then
+        echo "$BIND_ADDR"
+        return
+    fi
+    ip=$(/sbin/ifconfig -a|grep inet|grep -v 127.0.0.1|grep -v inet6|grep -v 172.17.0.1|awk '{print $2}'|tr -d "addr:")
+    count=$(echo "$ip" | wc -l)
+    if [[ $count -gt 2 ]]; then
+        echo "$count ip addresses are detected, please specify which to use explicitly."
+        echo "Aborting."
+        exit 1
+    fi
+    echo "$ip"
+}
+
+
+SHORT_OPTS="hr:p:b:d:a:"
+LONG_OPTS="help,repo-port:,pypi-port:,docker-registry-port:,base-dir:,bind-addr:"
+ARGS=$(getopt -o "${SHORT_OPTS}" -l "${LONG_OPTS}" --name "$0" -- "$@") || { usage >&2; exit 2; }
+
+eval set -- "$ARGS"
+
+REPOSITORY_PORT=8000
+PYPI_PORT=8080
+DOCKER_REGISTRY_PORT=5000
+CE_BASE="/data"
+BIND_ADDR=""
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+
+    (--repo-port|-r)
+            REPOSITORY_PORT="$2"
+            shift 2
+            ;;
+
+    (--pypi-port|-p)
+            PYPI_PORT="$2"
+            shift 2
+            ;;
+
+    (--docker-registry-port|-d)
+            DOCKER_REGISTRY_PORT="$2"
+            shift 2
+            ;;
+
+    (--base-dir|-b)
+            CE_BASE="$2"
+            shift 2
+            ;;
+
+    (--bind-addr|-a)
+            BIND_ADDR="$2"
+            shift 2
+            ;;
+
+    (--help|-h)
+            usage
+            shift
+            exit 0
+            ;;
+
+    (--)
+            shift
+            break
+            ;;
+
+    (*)
+            echo "Unsupported option found: $1!"
+            usage
+            exit 3
+            ;;
+esac
+done
+
+# CE related docker images
+REPO_SERVER_IMG="nginx:1.15.3"
+DOCKER_REGISTRY_IMG="registry:2"
+PYPI_SERVER_IMG="pypiserver:master"
+# docker container names
+REPO_SERVER="nginx"
+DOCKER_REGISTRY="registry"
+PYPI_SERVER="pypiserver"
+
+# check the CE_base dir exists
+if [[ ! -d "$CE_BASE" || ! -d "${CE_BASE}/OpenStackCE" ]]; then
+    echo "The specified base directory $CE_BASE or ${CE_BASE}/OpenStackCE does not exists."
+    exit 1
+fi
+
+
+# Install docker-ce on the deployment-server
+section "Install docker-ce and check docker daemon"
+dpkg -i ${CE_BASE}/OpenStackCE/docker-ce/*.deb 1>/dev/null
+check_status $? "Install docker-ce"
+
+status=`systemctl status docker -q --no-pager | grep "Active: active (running)"`
+rc=$(if [[ -z "$status" ]]; then echo 1;else echo 0;fi)
+check_status $rc "Start docker service"
+
+
+# Load docker images used to run local repo and local pypiserver
+section "Load docker images used to run local repo, pypiserver and docker registry"
+docker load -i "${CE_BASE}/OpenStackCE/deployment_docker_images.tar" 1>/dev/null
+check_status $? "Load docker image"
+
+
+# Check the list contains all the required docker images
+image_list=($REPO_SERVER_IMG $DOCKER_REGISTRY_IMG $PYPI_SERVER_IMG)
+missing_image=""
+for i in ${image_list[@]}; do
+    output=$(docker images --format "{{.Repository}}:{{.Tag}}" $i)
+    if [[ "$output" != "$i" ]]; then
+        missing_image=${missing_image}" "$i
+    fi
+done
+if [[ ${missing_image} != "" ]]; then
+    echo "Docker image: ${missing_image} not found."
+    echo "Aborting."
+    exit 1
+fi
+
+
+section "Stop and Remove existed CE repo containers"
+echo "Finding containers to kill..."
+containers_to_kill=$(find_containers_to_kill)
+if [ "${containers_to_kill}" != "" ]; then
+    echo "Containers to kill: ${containers_to_kill}"
+    echo "Stopping containers..."
+    (docker stop -t 5 ${containers_to_kill} 2>&1) > /dev/null
+    echo "Removing containers..."
+    (docker rm -f ${containers_to_kill} 2>&1) > /dev/null
+else
+    echo "No existed CE related containers Found."
+fi
+
+
+section "Start local package repository server"
+docker run -d --name $REPO_SERVER --restart=always -v ${CE_BASE}/OpenStackCE/ubuntu_mirror:/usr/share/nginx/html:ro -p ${REPOSITORY_PORT}:80 $REPO_SERVER_IMG 1>/dev/null
+check_status $?
+
+
+section "Start local docker registry server"
+docker run -d --name $DOCKER_REGISTRY --restart=always -v ${CE_BASE}/OpenStackCE/docker_registry:/var/lib/registry -p ${DOCKER_REGISTRY_PORT}:5000 $DOCKER_REGISTRY_IMG 1>/dev/null
+check_status $?
+
+
+section "Start local PYPI server"
+docker run -d --name $PYPI_SERVER --restart=always -v ${CE_BASE}/OpenStackCE/pypi:/data/packages -p ${PYPI_PORT}:8080 $PYPI_SERVER_IMG 1>/dev/null
+check_status $?
+
+
+section "Generate bootstrap files including sources.list and pip.conf"
+cp -f ${CE_BASE}/OpenStackCE/bootstrap_files/templates/* ${CE_BASE}/OpenStackCE/bootstrap_files/
+check_status $? "Copy sources.list templates"
+server_ip=$(get_bind_addr)
+echo "Get server bind address: $server_ip"
+sed -i "s/SERVER:REPO_PORT/${server_ip}:${REPOSITORY_PORT}/g" ${CE_BASE}/OpenStackCE/bootstrap_files/*list*
+sed -i "s/SERVER/${server_ip}/g" ${CE_BASE}/OpenStackCE/bootstrap_files/pip.conf
+sed -i "s/PORT/${PYPI_PORT}/g" ${CE_BASE}/OpenStackCE/bootstrap_files/pip.conf
+
+
+section "Setup deployment server to use local package repository and PYPI server"
+suffix=`date +%Y%m%d`
+cp -f /etc/apt/sources.list /etc/apt/sources.list.bk${suffix}
+check_status $? "Backup the old /etc/apt/sources.list"
+cp -f ${CE_BASE}/OpenStackCE/bootstrap_files/sources.list.x86 /etc/apt/sources.list
+check_status $? "Setup /etc/apt/sources.list"
+apt-get update 1>/dev/null
+check_status $? "Check repo with apt-get update command"
+mkdir -p ${HOME}/.pip
+cp -f ${CE_BASE}/OpenStackCE/bootstrap_files/pip.conf ${HOME}/.pip/pip.conf
+check_status $? "Setup ${HOME}/.pip/pip.conf"
+
+
+section "Install git and pip from local repository"
+apt-get install -y git python-pip 1>/dev/null
+check_status $?
+
+
+section "Upgrade pip to latest"
+pip install pip==9.0.3 1>/dev/null
+check_status $? "Install pip of version 9.0.3 firstly"
+export PATH=$PATH && pip install --upgrade pip 1>/dev/null
+check_status $? "Upgrade pip to latest version"
+export PATH=$PATH && pip list 1>/dev/null
+check_status $? "Check pip list can work after upgrade"
+
+
+section "Install kolla-ansible on deployment server"
+apt-get install -y python-dev libffi-dev gcc libssl-dev python-selinux python-setuptools ansible 1>/dev/null
+check_status $? "Install depended packages and ansible"
+pip install -U ansible 1>/dev/null
+check_status $? "Upgrade ansible"
+tee /etc/ansible/ansible.cfg 1>/dev/null << EOF
+[defaults]
+host_key_checking=False
+pipelining=True
+forks=100
+EOF
+check_status $? "Update ansible configuration file"
+apt-get remove -y python-yaml 1>/dev/null
+pip install PyYAML 1>/dev/null
+check_status $? "Remove python-yaml and reinstall with pip"
+pip install ansible 1>/dev/null
+check_status $? "Reinstall ansible with pip"
+current_dir=$(pwd) && cd ${CE_BASE}/OpenStackCE/kolla-ansible/ && pip install . 1>/dev/null && rc=$? && cd ${current_dir}
+check_status $rc "Install kolla-ansible"
+
+echo "*********************************"
+echo "All setups finished Successfully!"
+echo "*********************************"
+exit 0
