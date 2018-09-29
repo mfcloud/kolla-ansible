@@ -12,16 +12,16 @@
 #config_strategy: "COPY_ALWAYS"
 
 # Valid options are ['centos', 'debian', 'oraclelinux', 'rhel', 'ubuntu']
-#kolla_base_distro: "centos"
+kolla_base_distro: "ubuntu"
 
 # Valid options are [ binary, source ]
-#kolla_install_type: "binary"
+kolla_install_type: "binary"
 
 # Valid option is Docker repository tag
-#openstack_release: ""
+openstack_release: "queens"
 
 # Location of configuration overrides
-#node_custom_config: "/etc/kolla/config"
+node_custom_config: "/etc/kolla/config"
 
 # This should be a VIP, an unused IP on your network that will float between
 # the hosts running keepalived for high-availability. If you want to run an
@@ -56,6 +56,12 @@ kolla_internal_vip_address: "10.10.10.254"
 #docker_namespace: "companyname"
 #docker_registry_username: "sam"
 #docker_registry_password: "correcthorsebatterystaple"
+docker_registry: "LOCAL_DOCKER_REGISTRY"
+docker_namespace: "linuxone"
+
+#Below option is used to setup docker sources list which specifies where to
+#download docker deb package
+local_docker_apt_url: "http://LOCAL_APT_REPO/download.docker.com/linux/ubuntu"
 
 ###################
 # Messaging options
@@ -160,12 +166,12 @@ kolla_internal_vip_address: "10.10.10.254"
 #enable_designate: "no"
 #enable_destroy_images: "no"
 #enable_etcd: "no"
-#enable_fluentd: "yes"
+enable_fluentd: "no"
 #enable_freezer: "no"
 #enable_gnocchi: "no"
 #enable_grafana: "no"
-#enable_haproxy: "yes"
-#enable_heat: "yes"
+enable_haproxy: "no"
+enable_heat: "no"
 #enable_horizon: "yes"
 #enable_horizon_cloudkitty: "{{ enable_cloudkitty | bool }}"
 #enable_horizon_designate: "{{ enable_designate | bool }}"

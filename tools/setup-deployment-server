@@ -312,6 +312,14 @@ EOF
 chmod +x /etc/kolla/openstack-ce-presetups.sh
 check_status $?
 
+
+section "Update globals.yml with the local repo info"
+sed -i "s/LOCAL_DOCKER_REGISTRY/${server_ip}:${DOCKER_REGISTRY_PORT}/g" /etc/kolla/globals.yml
+check_status $? "Update docker registry info"
+sed -i "s/LOCAL_APT_REPO/${server_ip}:${REPOSITORY_PORT}/g" /etc/kolla/globals.yml
+check_status $? "Update apt package repo info"
+
+
 echo ""
 echo "*********************************"
 echo "All setups finished Successfully!"

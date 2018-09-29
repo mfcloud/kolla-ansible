@@ -1,6 +1,5 @@
-{% if ansible_architecture == 'aarch64' %}
-deb {{ docker_apt_url }} ./
+{% if ansible_architecture == 'x86_64' %}
+deb [arch=amd64] {{ docker_apt_url }} {{ ansible_distribution_release | lower }} stable
 {% else %}
-# main docker repo
-deb {{ docker_apt_url }}/repo {{ ansible_distribution | lower }}-{{ ansible_distribution_release | lower }} main
+deb [arch=s390x] {{ docker_apt_url }} {{ ansible_distribution_release | lower }} stable
 {% endif %}
