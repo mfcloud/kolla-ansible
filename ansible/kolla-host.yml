@@ -1,4 +1,15 @@
 ---
+# python-dev is required by most modules of ansible, but Ubuntu16.04.5 does not have it
+# built-in, so we need to first setup target nodes to use local repository and then install
+# python-dev. (ansible script module does not require python env, so utilize it.)
+- name: Run script on target nodes to setup repo and pip source and install python-dev
+  hosts: all
+  gather_facts: false
+  tasks:
+    - script: /etc/kolla/openstack-ce-presetups.sh
+      args:
+        executable: /bin/bash
+
 # NOTE(awiddersheim): Gather facts for all hosts as a
 # first step since several plays below require them when
 # building their configurations. The below 'gather_facts'
@@ -30,6 +41,7 @@
       with_items: "{{ groups['all'] }}"
       when:
         - (ansible_play_batch | length) != (groups['all'] | length)
+
 
 - name: Apply role baremetal
   hosts: baremetal

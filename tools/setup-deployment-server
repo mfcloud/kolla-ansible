@@ -273,6 +273,46 @@ check_status $? "Reinstall ansible with pip"
 current_dir=$(pwd) && cd ${CE_BASE}/OpenStackCE/kolla-ansible/ && pip install . 1>/dev/null && rc=$? && cd ${current_dir}
 check_status $rc "Install kolla-ansible"
 
+
+section "COPY configuration files to /etc/kolla"
+suffix=`date +%Y%m%d`
+cp -rf /etc/kolla /etc/kolla.bk${suffix} 2>/dev/null
+rm -rf /etc/kolla 2>/dev/null
+check_status $? "Backup old /etc/kolla if exists"
+cp -rf ${CE_BASE}/OpenStackCE/kolla-ansible/etc/kolla /etc/
+check_status $? "Copy /etc/kolla files"
+cp ${CE_BASE}/OpenStackCE/kolla-ansible/ansible/inventory/* /etc/kolla/
+check_status $? "Copy inventory files to /etc/kolla/"
+
+
+section "Install sshpass from local repository"
+apt-get install -y sshpass 1>/dev/null
+check_status $?
+
+
+section "Generat Script used to setup target nodes to use local repository"
+sources_x86=$(cat ${CE_BASE}/OpenStackCE/bootstrap_files/sources.list.x86)
+sources_s390x=$(cat ${CE_BASE}/OpenStackCE/bootstrap_files/sources.list.s390x)
+pip_conf=$(cat ${CE_BASE}/OpenStackCE/bootstrap_files/pip.conf)
+tee /etc/kolla/openstack-ce-presetups.sh 1>/dev/null << EOF
+#!/bin/bash
+cp -f /etc/apt/sources.list /etc/apt/sources.list.bk
+node_arch=\$(arch)
+if [ \${node_arch} == 'x86_64' ]; then
+    echo "${sources_x86}" > /etc/apt/sources.list
+else
+    echo "${sources_s390x}" > /etc/apt/sources.list
+fi
+echo "Installing python-dev on target nodes to be used by ansible..."
+apt-get update && apt-get install -y python-dev 1>/dev/null
+echo "Setup pip.conf"
+mkdir -p \${HOME}/.pip/
+echo "${pip_conf}" > \${HOME}/.pip/pip.conf
+EOF
+chmod +x /etc/kolla/openstack-ce-presetups.sh
+check_status $?
+
+echo ""
 echo "*********************************"
 echo "All setups finished Successfully!"
 echo "*********************************"
