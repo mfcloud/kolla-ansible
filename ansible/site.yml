@@ -48,6 +48,24 @@
       when: openstack_release == "auto"
   tags: always
 
+- name: Detect ansible_processor_vcpus variable for s390x arch nodes
+  hosts: compute
+  gather_facts: false
+  tasks:
+    - name: Get processor count from cpuinfo for s390x arch
+      shell: cat /proc/cpuinfo | grep '^# processors' | awk -F":" '{print $2}'
+      register: cpuinfo
+      changed_when: false
+      when: ansible_architecture == "s390x"
+
+    - name: Set ansible_processor_vcpus variable
+      set_fact:
+        ansible_processor_vcpus: "{{ cpuinfo.stdout|int }}"
+        openstack_service_workers: "{{ [cpuinfo.stdout|int, 5]|min }}"
+        openstack_service_rpc_workers: "{{ [cpuinfo.stdout|int, 3]|min }}"
+      when: ansible_architecture == "s390x"
+  tags: always
+
 - name: Apply role prechecks
   gather_facts: false
   hosts:
