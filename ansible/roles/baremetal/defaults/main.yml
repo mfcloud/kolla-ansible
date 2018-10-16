@@ -10,7 +10,7 @@ customize_etc_hosts: True
 
 create_kolla_user: True
 
-enable_host_ntp: True
+enable_host_ntp: False
 
 change_selinux: True
 
