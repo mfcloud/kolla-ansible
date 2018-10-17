@@ -1,0 +1,1 @@
+deb [arch=amd64] http://SERVER:REPO_PORT/download.docker.com/linux/ubuntu xenial stable

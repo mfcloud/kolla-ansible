@@ -1,0 +1,4 @@
+deb [arch=s390x] http://SERVER:REPO_PORT/us.ports.ubuntu.com/ubuntu-ports/ xenial main restricted universe multiverse
+deb [arch=s390x] http://SERVER:REPO_PORT/us.ports.ubuntu.com/ubuntu-ports/ xenial-updates main restricted universe multiverse
+deb [arch=s390x] http://SERVER:REPO_PORT/us.ports.ubuntu.com/ubuntu-ports/ xenial-backports main restricted universe multiverse
+deb [arch=s390x] http://SERVER:REPO_PORT/ports.ubuntu.com/ubuntu-ports xenial-security main restricted
