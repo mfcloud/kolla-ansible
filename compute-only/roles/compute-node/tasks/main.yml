@@ -1,0 +1,16 @@
+---
+# main task file
+
+# setup net device
+- include: setup_net_dev.yml
+  when: lpar_net_dev_list
+
+# setup software repos
+- include: setup_repos.yml
+
+# install packages
+- include: install_packages.yml
+
+# install and configure openstack compute node
+- include: deploy.yml
+

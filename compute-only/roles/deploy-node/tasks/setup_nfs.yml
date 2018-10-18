@@ -1,0 +1,57 @@
+---
+- name: Install rpcbind
+  zypper:
+    name: rpcbind
+    state: installed
+
+- name: Install nfs
+  zypper:
+    name: nfs-kernel-server
+    state: installed
+
+- name: Create nfs directory
+  file:
+    path: "/nfs"
+    state: directory 
+
+- name: Enable and restart rpcbind
+  systemd:
+    name: rpcbind
+    enabled: yes
+    state: restarted
+
+- name: Enable and restart nfsserver
+  systemd:
+    name: nfsserver
+    enabled: yes
+    state: restarted
+
+- name: Create folder foreach repos
+  file:
+    path: "/nfs/{{ item.key }}"
+    state: directory
+  with_dict: "{{ iso_files }}"
+
+- name: Mount isos
+  mount:
+    name: "/nfs/{{ item.key }}"
+    src: "{{ item.value }}"
+    opts: "ro,loop"
+    fstype: iso9660
+    state: mounted
+  with_dict: "{{ iso_files }}"
+
+- name: update exportfs iso
+  lineinfile:
+    dest: "/etc/exports"
+    line: "/nfs/{{ item.key }}    *(ro,sync)"
+  with_dict: "{{ iso_files }}"
+
+- name: update exportfs dir
+  lineinfile:
+    dest: "/etc/exports"
+    line: "{{ item.value }}    *(ro,sync)"
+  with_dict: "{{ repo_dir }}"
+
+- name: refresh nfs dir
+  shell: "exportfs -a"

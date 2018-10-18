@@ -1,0 +1,7 @@
+---
+# install packages on compute node
+- name: Install all packages
+  zypper:
+    name: "{{ item }}"
+    state: installed
+  with_items: "{{ compute_packages }}"

@@ -1,5 +1,5 @@
 ---
 # setup openstack on zkvm host
-- hosts: zkvm-cpu
+- hosts: compute_nodes
   roles:
-    - zkvm-compute
+    - compute-node

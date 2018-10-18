@@ -1,0 +1,8 @@
+---
+- name: cio_ignore
+  command: "cio_ignore -r {{ item }}"
+  with_items: "{{ lpar_net_dev_list }}"
+
+- name: chzdev
+  command: "chzdev -e {{ item }}"
+  with_items: "{{ lpar_net_dev_list }}"

@@ -1,35 +1,50 @@
 ---
 # vars file for zkvm-compute
-controller_ip: 192.168.0.2
 
-osa_device: "2000"
-osa_device_full: "2000-2002"
-ovs_bridge: "br0"
+# ansible temp path
+ansible_temp_path: "/tmp/ansible/"
 
-controller_nova_conf_path: "/root/zkvm/files/nova.conf"
-controller_neutron_conf_path: "/root/zkvm/files/neutron.conf"
-controller_neutron_ml2_conf_path: "/root/zkvm/files/ml2_conf.ini"
+# config file path on controller
+controller_nova_conf_path: "/etc/kolla/nova-api/nova.conf"
+controller_neutron_conf_path: "/etc/kolla/neutron-server/neutron.conf"
+controller_neutron_ml2_conf_path: "/etc/kolla/neutron-openvswitch-agent/ml2_conf.ini"
 
-ansible_tmp_dir: "/tmp/ansible/"
+config_files:
+  nova_conf:
+    src: "{{ controller_nova_conf_path }}"
+    dest: /etc/nova/nova.conf
+    fn: nova.conf
+  neutron_conf:
+    src: "{{ controller_neutron_conf_path }}"
+    dest: /etc/neutron/neutron.conf
+    fn: neutron.conf
+  neutron_ml2_ini:
+    src: "{{ controller_neutron_ml2_conf_path }}"
+    dest: /etc/neutron/plugins/ml2/openvswitch_agent.ini
+    fn: openvswitch_agent.ini
 
+# network devices list. e.g. OSA list.
+#lpar_net_dev_list:
+#  - "2000-2002"
 
-sles12sp3_repos:
-  os-dvd1: ftp://linuxone:password@192.168.0.1/repo/sles/os/dvd1
-  os-dvd2: ftp://linuxone:password@192.168.0.1/repo/sles/os/dvd2
-  os-dvd3: ftp://linuxone:password@192.168.0.1/repo/sles/os/dvd3
-  prod-sdk: ftp://linuxone:password@192.168.0.1/repo/sles/scc/Products/SLE-SDK/12-SP3/s390x/product
-  prod-server: ftp://linuxone:password@192.168.0.1/repo/sles/scc/Products/SLE-SERVER/12-SP3/s390x/product
-  update-module-public-cloud: ftp://linuxone:password@192.168.0.1/repo/sles/scc/Updates/SLE-Module-Public-Cloud/12/s390x/update
-  update-sdk: ftp://linuxone:password@192.168.0.1/repo/sles/scc/Updates/SLE-SDK/12-SP3/s390x/update
-  update-server: ftp://linuxone:password@192.168.0.1/repo/sles/scc/Updates/SLE-SERVER/12-SP3/s390x/update
-  openstack-ocata: ftp://linuxone:password@192.168.0.1/repo/openstack/Ocata/SLE_12_SP3  
+lpar_net_dev_list: '[]'
 
-lpar_net_dev_list:
-  - "0009"
-  - "000c"
-  - "000f"
-  - "0012"
-  - "0015"
-  - "0018"
-  - "001b"
-  - "001e"
+#=========================
+# local repository options
+#=========================
+
+# set as true will setup software repositories
+enable_local_repo: "true"
+
+# repo type, currently only support nfs
+repo_type: "nfs"
+
+# iso files that to be mount as software repositories
+iso_files:
+  sles12sp3-sdk1: "/var/lib/nova/ce-files/isos/SLE-12-SP3-SDK-DVD-s390x-GM-DVD1.iso"
+  sles12sp3-dvd1: "/var/lib/nova/ce-files/isos/SLE-12-SP3-Server-DVD-s390x-GM-DVD1.iso"
+
+# software repositories that in local file system
+repo_dir:
+  openstack-ocata: "/var/lib/nova/ce-files/Ocata/SLE_12_SP3"
+

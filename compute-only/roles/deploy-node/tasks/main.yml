@@ -1,0 +1,14 @@
+---
+# tasks file for deploy-node
+
+- name: Create ansible temp directory
+  file:
+    path: "{{ ansible_temp_path }}"
+    state: directory
+
+# setup nfs
+- include: setup_nfs.yml
+  when:
+    - repo_type == "nfs" and
+        enable_local_repo == "true"
+

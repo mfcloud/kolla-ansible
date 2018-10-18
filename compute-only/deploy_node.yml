@@ -1,0 +1,5 @@
+---
+# main yml for deploy node
+- hosts: deploy_node
+  roles:
+    - deploy-node 

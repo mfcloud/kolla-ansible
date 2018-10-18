@@ -53,14 +53,6 @@ neutron_settings:
     value: "/var/log/neutron"
 
 neutron_ml2_settings:
-#  flat_networks:
-#    opt: "flat_networks"
-#    section: "ml2_type_flat"
-#    value: "*"
-#  bridge_mappings:
-#    opt: "bridge_mappings"
-#    section: "ovs"
-#    value: "provider:{{ ovs_bridge }}"
   local_ip_ovs:
     opt: "local_ip"
     section: "ovs"
@@ -78,14 +70,11 @@ neutron_ml2_settings:
 #    section: "VXLAN"
 #    value: "{{ ansible_all_ipv4_addresses[0] }}"
 
-config_files:
-  nova_conf:
-    src: "{{ controller_nova_conf_path }}"
-    dest: /etc/nova/nova.conf
-  neutron_conf:
-    src: "{{ controller_neutron_conf_path }}"
-    dest: /etc/neutron/neutron.conf
-  neutron_ml2_ini:
-    src: "{{ controller_neutron_ml2_conf_path }}"
-    dest: /etc/neutron/plugins/ml2/openvswitch_agent.ini
-
+compute_packages:
+  - rpcbind
+  - openvswitch
+  - genisoimage
+  - libvirt
+  - qemu-kvm
+  - openstack-nova-compute
+  - openstack-neutron-openvswitch-agent

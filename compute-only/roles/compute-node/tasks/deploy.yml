@@ -1,0 +1,86 @@
+---
+# tasks file for LinuxONE compute node
+- name: Enable and start openvswitch
+  systemd:
+    name: openvswitch
+    enabled: yes
+    state: restarted
+
+- name: Config libvirtd
+  ini_file:
+    dest: /etc/libvirt/libvirtd.conf
+    section: "{{ item.value.section }}"
+    option: "{{ item.key }}"
+    value: "{{ item.value.value }}"
+  with_dict: "{{ libvirtd_settings }}"
+
+- name: Enable and start libvirt
+  systemd:
+    name: libvirtd
+    enabled: yes
+    state: restarted
+
+- name: copy file
+  copy:
+    src: "{{ ansible_temp_path + item.value.fn }}"
+    dest: "{{ item.value.dest }}"
+  with_dict: "{{ config_files }}"
+
+- name: Config nova.conf
+  ini_file:
+    dest: /etc/nova/nova.conf
+    section: "{{ item.value.section }}"
+    option: "{{ item.key }}"
+    value: "{{ item.value.value }}"
+  with_dict: "{{ nova_settings }}"
+
+- name: Enable and start nova-compute
+  systemd:
+    name: openstack-nova-compute
+    enabled: yes
+    state: restarted
+
+- name: Config neutron.conf
+  ini_file:
+    dest: /etc/neutron/neutron.conf
+    section: "{{ item.value.section }}"
+    option: "{{ item.key }}"
+    value: "{{ item.value.value }}"
+  with_dict: "{{ neutron_settings }}"
+
+- name: Config neutron ml2_conf.ini
+  ini_file:
+    dest: /etc/neutron/plugins/ml2/openvswitch_agent.ini
+    section: "{{ item.value.section }}"
+    option: "{{ item.value.opt }}"
+    value: "{{ item.value.value }}"
+  with_dict: "{{ neutron_ml2_settings }}"
+
+- name: Comment out bridge_mappings in neutron ml2_conf.ini
+  ini_file:
+    dest: /etc/neutron/plugins/ml2/openvswitch_agent.ini
+    section: ovs
+    option: bridge_mappings
+    state: absent
+
+- name: Comment out ovsdb conn in neutron ml2_conf.ini
+  ini_file:
+    dest: /etc/neutron/plugins/ml2/openvswitch_agent.ini
+    section: ovs
+    option: ovsdb_connection
+    state: absent
+
+- name: Comment out firewall_driver  in neutron ml2_conf.ini
+  ini_file:
+    dest: /etc/neutron/plugins/ml2/openvswitch_agent.ini
+    section: securitygroup
+    option: firewall_driver
+    state: absent
+
+
+- name: Enable and start openstack-neutron-openvswitch-agent
+  systemd:
+    name: openstack-neutron-openvswitch-agent
+    enabled: yes
+    state: restarted
+

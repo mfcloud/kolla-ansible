@@ -1,0 +1,19 @@
+---
+# main playbook
+
+# playbook of deploy node
+- include: deploy_node.yml
+
+# Fetch openstack config files from controlle
+- hosts: controller
+  tasks:
+    - name: Fetch openstack config files from controller
+      fetch:
+        src: "{{ item.value.src }}"
+        dest: "{{ ansible_temp_path + item.value.fn }}"
+        flat: yes
+      with_dict: "{{ config_files }}"
+
+
+# playbook of compute node
+- include: compute.yml

@@ -1,0 +1,17 @@
+---
+- name: add iso repositories
+  zypper_repository:
+    name: "{{ item.key }}"
+    repo: "nfs://{{ groups.deploy_node[0] }}/nfs/{{ item.key }}"
+    disable_gpg_check: yes
+    autorefresh: yes
+  with_dict: "{{ iso_files }}"
+
+- name: add other repositories
+  zypper_repository:
+    name: "{{ item.key }}"
+    repo: "nfs://{{ groups.deploy_node[0] }}/{{ item.value }}"
+    disable_gpg_check: yes
+    autorefresh: yes
+  with_dict: "{{ repo_dir }}"
+

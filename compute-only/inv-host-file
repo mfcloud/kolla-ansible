@@ -1,5 +1,14 @@
-[zkvm-cpu]
-192.168.0.3
+[deploy_node]
+192.168.1.201 ansible_ssh_pass=password
+
+[compute_nodes]
+192.168.1.201 lpar_net_dev_list='["2000-2002"]' ansible_ssh_pass=password
+192.168.1.203 ansible_ssh_pass=password
 
 [controller]
-192.168.0.2
+192.168.1.202 ansible_password=password
+
+[all:vars]
+ansible_connection=ssh
+ansible_ssh_user=root
+ansible_user=root
