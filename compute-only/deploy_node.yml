@@ -3,3 +3,13 @@
 - hosts: deploy_node
   roles:
     - deploy-node 
+
+# Fetch openstack config files from controlle
+- hosts: controller
+  tasks:
+    - name: Fetch openstack config files from controller
+      fetch:
+        src: "{{ item.value.src }}"
+        dest: "{{ ansible_temp_path + item.value.fn }}"
+        flat: yes
+      with_dict: "{{ config_files }}"
