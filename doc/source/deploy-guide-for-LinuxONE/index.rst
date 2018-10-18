@@ -6,7 +6,7 @@ Deploy guide for using kolla-ansible to deploy compute node on LinuxONE
 Overview
 ========
 
-This project provide deployment tools to deploy OpenStack controller services
+This project provides deployment tools to deploy OpenStack controller services
 on x86 controller and compute services for kvm on LinuxONE. The code core is
 based on the openstack/kolla-ansible project which deploys OpenStack services
 and infrastructure components in Docker containers permitting operators with
