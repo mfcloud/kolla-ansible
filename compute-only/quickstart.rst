@@ -92,8 +92,8 @@ file ``/etc/ansible/ansible.cfg``:
 
     zypper install -y sshpass-1.06-7.2.s390x.rpm
 
-Prepare ansible inventory file
-==============================
+Prepare ansible inventory file and configure deploy settings
+============================================================
 
 The sample inventory file is located at ``kolla-ansible/compute-only/inv-host-file``:
 
@@ -103,6 +103,16 @@ The sample inventory file is located at ``kolla-ansible/compute-only/inv-host-fi
   ``ansible_ssh_pass`` specified
 - Add OpenStack controller node into ``controller`` section, with
   ``ansible_ssh_pass`` specified
+
+Edit ``kolla-ansible/compute-only/group_vars/all.yml`` file according to your LinuxONE cluster
+environment. Required options:
+::
+
+    controller_nova_conf_path
+    controller_neutron_conf_path
+    controller_neutron_ml2_conf_path
+    iso_files
+    repo_dir
 
 Deploy LinuxONE OpenStack compute node
 ======================================
