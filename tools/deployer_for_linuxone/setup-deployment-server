@@ -284,6 +284,23 @@ cp -rf ${CE_BASE}/OpenStackCE/kolla-ansible/etc/kolla /etc/
 check_status $? "Copy /etc/kolla files"
 cp ${CE_BASE}/OpenStackCE/kolla-ansible/ansible/inventory/* /etc/kolla/
 check_status $? "Copy inventory files to /etc/kolla/"
+mkdir -p /etc/kolla/config/nova
+tee /etc/kolla/config/nova/nova-compute.conf 1>/dev/null << EOF
+[DEFAULT]
+enable_apis=osapi_compute,metadata
+compute_driver=libvirt.LibvirtDriver
+config_drive_format=iso9660
+force_config_drive=True
+firewall_driver=nova.virt.firewall.NoopFirewallDriver
+pointer_model=ps2mouse
+[vnc]
+enabled=False
+[libvirt]
+virt_type=kvm
+cpu_mode=none
+inject_partition=-2
+EOF
+check_status $? "Add nova-compute.conf into /etc/kolla/config/nova/"
 
 
 section "Install sshpass from local repository"

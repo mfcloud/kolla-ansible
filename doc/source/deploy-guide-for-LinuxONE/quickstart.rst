@@ -150,7 +150,7 @@ folder:
 ::
 
     root@deployer:~# ls /etc/kolla
-    all-in-one  globals.yml  multinode  openstack-ce-presetups.sh  passwords.yml
+    all-in-one  config  globals.yml  multinode  openstack-ce-presetups.sh  passwords.yml
 
 Since we have separate host for controller node and compute nodes, so we need to edit the ``multinode`` inventory file.
 Edit the first section of ``multinode`` with connection details of your environment, for example:
@@ -250,29 +250,8 @@ OpenStack Service Configurations
 
 For deploy to kvm compute node on LinuxONE, some configurations are required for nova-compute service.
 
-Create the /etc/kolla/config/nova/nova-compute.conf file as done by following steps:
-
-::
-
-    root@deployment-server:~# mkdir -p /etc/kolla/config/nova
-    root@deployment-server:~# vi /etc/kolla/config/nova/nova-compute.conf
-    root@deployment-server:~#
-    root@deployment-server:~# cat /etc/kolla/config/nova/nova-compute.conf
-    [DEFAULT]
-    enable_apis=osapi_compute,metadata
-    compute_driver=libvirt.LibvirtDriver
-    config_drive_format=iso9660
-    force_config_drive=True
-    firewall_driver=nova.virt.firewall.NoopFirewallDriver
-    pointer_model=ps2mouse
-    
-    [vnc]
-    enabled=False
-    
-    [libvirt]
-    virt_type=kvm
-    cpu_mode=none
-    inject_partition=-2
+The deployer node setup tool automatically generated the /etc/kolla/config/nova/nova-compute.conf file that contains the required options,
+you can customize this file to adjust your environment settings.
 
 Other Configurations:
 
