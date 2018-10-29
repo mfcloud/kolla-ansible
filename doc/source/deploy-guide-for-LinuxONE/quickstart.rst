@@ -56,8 +56,12 @@ and compute nodes, run the local pypi server which serves python packages, run t
 image repository to replace the need to pull images from Docker Hub. With these local servers,
 this omits the needs of network connection of the deploy process.
 
-These functions require several files to be prepared and put onto the deployer node. The files
-should be organized as following:
+These functions require several files to be prepared and put onto the deployer node. Please first
+refer to
+ref:`prepare files required by the deployment server`
+to prepare all these files.
+
+After finish all the required steps described, the files should be organized as following:
 
 ::
 
