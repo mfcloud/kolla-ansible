@@ -99,12 +99,12 @@ The /data/OpenStackCE/kolla-ansible holds the tool used to setup the deployer.
 You can check the tool usage by running:
 ::
 
-    /data/OpenStackCE/kolla-ansible/tools/setup-deployment-server -h
+    /data/OpenStackCE/kolla-ansible/tools/deployer_for_linuxone/setup-deployment-server -h
 
 Then run the tool with your arguments if required:
 ::
 
-    /data/OpenStackCE/kolla-ansible/tools/setup-deployment-server
+    /data/OpenStackCE/kolla-ansible/tools/deployer_for_linuxone/setup-deployment-server
 
 This tool would automatically do the following jobs:
 
@@ -266,6 +266,11 @@ This can be done per-project, per-service or per-service-on-specified-host.
 
 Deployment
 ~~~~~~~~~~
+
+  .. note::
+
+      Please note that by default keystone use port 5000 and docker registry use 5000 as well
+      you need fix this conflict before proceed, e.g make keystone running on 5001.
 
 After configuration is set, we can proceed to the deployment phase.
 
