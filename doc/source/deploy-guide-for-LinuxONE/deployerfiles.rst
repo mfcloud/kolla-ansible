@@ -46,6 +46,16 @@ We will use ``$KOLLA_BASE`` to represent the kolla project base folder and the `
 to represent the IP address of the x86_64 server in this guide, please remember to replace the value
 to suit your environment.
 
+Because we are going to use docker manifest for multi-arch support on both x86 and linuxone,
+according to https://github.com/docker/cli/pull/138, Docker version at least need to be 18.02.
+
+Please pay attention to the docker storage driver on both x86 and linuxone, make them
+have same settings.
+
+  ::
+
+      # docker info | grep 'Storage Driver'
+      Storage Driver: aufs
 
 - pip and python should be installed on both of the two servers
 
@@ -100,6 +110,7 @@ to suit your environment.
     7039bf35141e        registry:2          "/entrypoint.sh /etc…"   14 seconds ago      Up 12 seconds       0.0.0.0:5000->5000/tcp   registry
 
 - Update docker configuration on the two servers so that the insecure private image repository can be accessed.
+  This need to be done on both x86 and linuxone side.
 
   Create a file named /etc/docker/daemon.json with following content and then restart docker
 
@@ -181,6 +192,10 @@ local docker image registry:
 
     # bash $KOLLA_BASE/multi-arch-repository/multi-arch -n linuxone -t queens -r localhost:5000
 
+  .. note::
+
+    The ``localhost`` above should be hostname instead of ip address or you will
+    get an error in current ``docker manifest`` command.
 
 Download Ubuntu mirror
 ~~~~~~~~~~~~~~~~~~~~~~

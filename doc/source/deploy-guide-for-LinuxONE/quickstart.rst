@@ -99,12 +99,12 @@ The /data/OpenStackCE/kolla-ansible holds the tool used to setup the deployer.
 You can check the tool usage by running:
 ::
 
-    /data/OpenStackCE/kolla-ansible/tools/setup-deployment-server -h
+    /data/OpenStackCE/kolla-ansible/tools/deployer_for_linuxone/setup-deployment-server -h
 
 Then run the tool with your arguments if required:
 ::
 
-    /data/OpenStackCE/kolla-ansible/tools/setup-deployment-server
+    /data/OpenStackCE/kolla-ansible/tools/deployer_for_linuxone/setup-deployment-server
 
 This tool would automatically do the following jobs:
 
