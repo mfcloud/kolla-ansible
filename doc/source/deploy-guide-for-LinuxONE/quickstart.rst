@@ -95,11 +95,18 @@ The following guides will use the /data/OpenStackCE as the folder name for the r
 Run setup tool
 --------------
 
-The /data/OpenStackCE/kolla-ansible holds the tool used to setup the deployer.
+The /data/OpenStackCE/kolla-ansible holds the tool used to setup the deployment server.
 You can check the tool usage by running:
 ::
 
     /data/OpenStackCE/kolla-ansible/tools/deployer_for_linuxone/setup-deployment-server -h
+
+.. note::
+
+    Please note that if the deployment server is also planned to be used as the OpenStack Controller node, since
+    by default keystone service would use port 5000 and the setup-deployment-server tool run docker registry on
+    port 5000 as well, you need to fix this conflict by specifying the docker registry port with ``-d <registry_port>``
+    when running the setup-deployment-tool in the following, eg. to use port 5001.
 
 Then run the tool with your arguments if required:
 ::
