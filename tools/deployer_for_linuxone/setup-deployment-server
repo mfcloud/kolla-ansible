@@ -67,16 +67,17 @@ function find_containers_to_kill {
 function get_bind_addr {
     if [[ "$BIND_ADDR" != "" ]] ; then
         echo "$BIND_ADDR"
-        return
+        return 0
     fi
     ip=$(/sbin/ifconfig -a|grep inet|grep -v 127.0.0.1|grep -v inet6|grep -v 172.17.0.1|awk '{print $2}'|tr -d "addr:")
     count=$(echo "$ip" | wc -l)
-    if [[ $count -gt 2 ]]; then
-        echo "$count ip addresses are detected, please specify which to use explicitly."
+    if [[ $count -ge 2 ]]; then
+        echo "$count ip addresses are detected, please specify which to use explicitly by -a."
         echo "Aborting."
-        exit 1
+        return -1
     fi
     echo "$ip"
+    return 0
 }
 
 
@@ -221,6 +222,10 @@ mkdir -p ${CE_BASE}/OpenStackCE/bootstrap_files
 cp -f ${CE_BASE}/OpenStackCE/kolla-ansible/tools/deployer_for_linuxone/templates/ubuntu/* ${CE_BASE}/OpenStackCE/bootstrap_files/
 check_status $? "Copy sources.list templates"
 server_ip=$(get_bind_addr)
+if [[ $? -ne 0 ]]; then
+    echo "Error: get_bind_addr failed!"
+    exit -1
+fi
 echo "Get server bind address: $server_ip"
 sed -i "s/SERVER:REPO_PORT/${server_ip}:${REPOSITORY_PORT}/g" ${CE_BASE}/OpenStackCE/bootstrap_files/*list*
 sed -i "s/SERVER/${server_ip}/g" ${CE_BASE}/OpenStackCE/bootstrap_files/pip.conf
