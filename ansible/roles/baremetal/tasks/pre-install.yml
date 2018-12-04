@@ -2,7 +2,7 @@
 # NOTE: raw install is required to support cloud images which do not have python installed
 - name: "Install python2 and python-simplejson"
   become: True
-  raw: "yum install -y python python-simplejson || (apt-get update && apt-get install -y python2.7 python-simplejson)"
+  raw: "yum install -y python python-simplejson || (apt-get update && apt-get install -y python2.7 python-simplejson) || (zypper refresh && zypper install -y python python-simplejson)"
 
 - name: Gather facts
   setup:
@@ -55,6 +55,16 @@
     groups: "sudo"
   become: True
   when: create_kolla_user | bool
+
+- stat:
+    path: /etc/sudoers
+  register: sudo_result
+
+- name: install sudo if it isn't installed
+  zypper:
+    name: sudo
+    state: present
+  when: (ansible_os_family == 'Suse') and (sudo_result.stat.exists == false)
 
 - name: Grant kolla user passwordless sudo
   lineinfile:
@@ -133,6 +143,21 @@
     key: "{{ docker_yum_url }}/gpg"
   become: True
   when: ansible_os_family == 'RedHat'
+
+- name: Ensure zypper repos directory exists
+  file:
+    path: /etc/zypp/repos.d/
+    state: directory
+    recurse: yes
+  become: True
+  when: ansible_os_family == 'Suse'
+
+- name: Enable docker repo zypper
+  become: True
+  template:
+    src: docker_zypper_repo.j2
+    dest: /etc/zypp/repos.d/docker.repo
+  when: ansible_os_family == 'Suse'
 
 - name: Ensure node_config_directory directory exists
   file:

@@ -57,6 +57,20 @@
   with_items: "{{ redhat_pkg_install }}"
   when: ansible_os_family == 'RedHat'
 
+- name: Install zypper packages
+  package:
+    name: "{{ item }}"
+    state: present
+  become: True
+  with_items: "{{ suse_pkg_install }}"
+  when: ansible_os_family == 'Suse'
+
+- name: Insert kvm module
+  modprobe:
+    name: kvm
+    state: present
+  when: ansible_os_family == 'Suse'
+
 - name: Install virtualenv packages
   package:
     name: python-virtualenv

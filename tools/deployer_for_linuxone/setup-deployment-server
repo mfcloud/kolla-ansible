@@ -377,20 +377,50 @@ fi
 
 if [ $GEN_SCRIPT -eq 1 ]; then
     section "Generat Script used to setup target nodes to use local repository"
+    CUR_DIR=$(cd "$(dirname ${BASH_SOURCE[0]})" && pwd)
+    python_dev_rpm=python-devel-2.7.13-27.1.s390x.rpm
+    echo "Copying python devel rpm for suse s390x platform"
+    cp -f $CUR_DIR/$python_dev_rpm /etc/kolla
     sources_x86=$(cat ${CE_BASE}/OpenStackCE/bootstrap_files/sources.list.x86)
     sources_s390x=$(cat ${CE_BASE}/OpenStackCE/bootstrap_files/sources.list.s390x)
     pip_conf=$(cat ${CE_BASE}/OpenStackCE/bootstrap_files/pip.conf)
     tee /etc/kolla/openstack-ce-presetups.sh 1>/dev/null << EOF
 #!/bin/bash
-cp -f /etc/apt/sources.list /etc/apt/sources.list.bk
 node_arch=\$(arch)
-if [ \${node_arch} == 'x86_64' ]; then
-    echo "${sources_x86}" > /etc/apt/sources.list
-else
-    echo "${sources_s390x}" > /etc/apt/sources.list
+os=''
+grep -i 'ubuntu' /proc/version && os='ubuntu'
+[[ \${os} == '' ]] && grep -i 'suse' /proc/version && os='suse'
+[[ \${os} == '' ]] && grep -i 'red hat' /proc/version && os='redhat'
+if [ os == '' ]; then
+	echo "Error: can't detect os type!"
+	exit -1
 fi
-echo "Installing python-dev on target nodes to be used by ansible..."
-apt-get update && apt-get install -y python-dev 1>/dev/null
+echo "target os is ${os}"
+
+if [ \${node_arch} == 'x86_64' ]; then
+    if [ \${os} == 'ubuntu' ]; then
+        cp -f /etc/apt/sources.list /etc/apt/sources.list.bk
+        echo "${sources_x86}" > /etc/apt/sources.list
+    fi
+else
+    if [ \${os} == 'ubuntu' ]; then
+        cp -f /etc/apt/sources.list /etc/apt/sources.list.bk
+        echo "${sources_s390x}" > /etc/apt/sources.list
+        echo "Installing python-dev on target nodes to be used by ansible..."
+        apt-get update && apt-get install -y python-dev 1>/dev/null
+    elif [ \${os} == 'suse' ]; then
+        echo "Installing python2-pip and python-setuptools on target nodes to be used by ansible..."
+        zypper addrepo -G https://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_Factory_zSystems/ python-dev
+        zypper refresh
+        #For easy_install
+        zypper install -y --force-resolution python-setuptools
+        zypper install -y --force-resolution python2-pip
+
+        echo "Installing python-dev on target nodes to be used by ansible..."
+        zypper install -y glibc-devel
+        rpm -ivh ${python_dev_rpm}
+    fi
+fi
 echo "Setup pip.conf"
 mkdir -p \${HOME}/.pip/
 echo "${pip_conf}" > \${HOME}/.pip/pip.conf
