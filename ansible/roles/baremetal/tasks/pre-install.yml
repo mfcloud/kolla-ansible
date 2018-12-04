@@ -2,7 +2,7 @@
 # NOTE: raw install is required to support cloud images which do not have python installed
 - name: "Install python2 and python-simplejson"
   become: True
-  raw: "yum install -y python python-simplejson || (apt-get update && apt-get install -y python2.7 python-simplejson)"
+  raw: "yum install -y python python-simplejson || (apt-get update && apt-get install -y python2.7 python-simplejson) || (zypper refresh && zypper install -y python python-simplejson)"
 
 - name: Gather facts
   setup:
@@ -112,6 +112,21 @@
   when:
     - ansible_os_family == 'RedHat'
     - ansible_architecture != 's390x'
+
+- name: Ensure zypper repos directory exists
+  file:
+    path: /etc/zypp/repos.d/
+    state: directory
+    recurse: yes
+  become: True
+  when: ansible_os_family == 'Suse'
+
+- name: Enable docker repo zypper
+  become: True
+  template:
+    src: docker_zypper_repo.j2
+    dest: /etc/zypp/repos.d/docker.repo
+  when: ansible_os_family == 'Suse'
 
 - name: Enable epel repo yum
   become: True

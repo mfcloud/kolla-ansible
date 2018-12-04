@@ -45,6 +45,13 @@ redhat_pkg_install_s390x:
  - ntp
  - sudo
 
+suse_pkg_install:
+ - docker
+ - git-core
+ - ntp
+ - qemu-kvm
+ - libvirt
+
 ubuntu_pkg_removals:
  - lxd
  - lxc
