@@ -40,6 +40,12 @@ redhat_pkg_install:
  - ntp
  - sudo
 
+redhat_pkg_install_s390x:
+ - git
+ - python-setuptools
+ - ntp
+ - sudo
+
 ubuntu_pkg_removals:
  - lxd
  - lxc
