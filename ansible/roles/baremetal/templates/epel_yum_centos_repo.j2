@@ -1,0 +1,6 @@
+[epel-centos-repo]
+name=Epel CentOS Repository
+baseurl=https://dl.fedoraproject.org/pub/epel/{{ ansible_distribution_major_version | lower }}/{{ ansible_architecture }}
+enabled=1
+gpgcheck=1
+gpgkey=https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version | lower }}
