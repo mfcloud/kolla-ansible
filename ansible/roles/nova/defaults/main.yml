@@ -136,6 +136,7 @@ nova_services:
       - "libvirtd:/var/lib/libvirt"
       - "{{ nova_instance_datadir_volume }}:/var/lib/nova/"
       - "{% if enable_cinder_backend_nfs | bool %}/var/lib/nova/mnt:/var/lib/nova/mnt:shared{% endif %}"
+      - "{{ node_config_directory }}/zvmsdk/:/etc/zvmsdk/:ro"
     dimensions: "{{ nova_compute_dimensions }}"
   nova-compute-ironic:
     container_name: "nova_compute_ironic"

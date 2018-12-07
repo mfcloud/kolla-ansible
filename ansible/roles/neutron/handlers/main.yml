@@ -378,6 +378,7 @@
     neutron_conf: "{{ neutron_confs.results|selectattr('item.key', 'equalto', service_name)|first }}"
     neutron_ml2_conf: "{{ neutron_ml2_confs.results|selectattr('item.key', 'equalto', service_name)|first }}"
     policy_json: "{{ policy_jsons.results|selectattr('item.key', 'equalto', service_name)|first }}"
+    neutron_zvm_plugin_ini: "{{ neutron_zvm_plugin_inis }}"
     neutron_zvm_agent_container: "{{ check_neutron_containers.results|selectattr('item.key', 'equalto', service_name)|first }}"
   become: true
   kolla_docker:
@@ -396,4 +397,5 @@
       or neutron_conf | changed
       or neutron_ml2_conf | changed
       or policy_json | changed
+      or neutron_zvm_plugin_ini | changed
       or neutron_zvm_agent_container | changed

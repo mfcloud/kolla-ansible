@@ -24,6 +24,18 @@
     - item.value.enabled | bool
   with_dict: "{{ nova_services }}"
 
+- name: Ensuring zvmsdk config directories exist
+  become: true
+  file:
+    path: "{{ node_config_directory }}/zvmsdk"
+    state: "directory"
+    owner: "{{ config_owner_user }}"
+    group: "{{ config_owner_group }}"
+    mode: "0777"
+  when:
+    - nova_compute_virt_type == 'zvm'
+    - inventory_hostname in groups['compute']
+
 - name: Check if policies shall be overwritten
   local_action: stat path="{{ item }}"
   run_once: True
@@ -193,10 +205,12 @@
   become: true
   template:
     src: "{{ role_path }}/templates/zvmsdk_token.dat.j2"
-    dest: "{{ node_config_directory }}/nova-compute/zvmsdk_token.dat"
+    dest: "{{ node_config_directory }}/zvmsdk/token.dat"
     mode: "0755"
-  register: nova_confs
-  when: nova_compute_virt_type == 'zvm'
+  register: zvmsdk_confs
+  when:
+    - nova_compute_virt_type == 'zvm'
+    - inventory_hostname in groups['compute']
   notify:
     - Restart nova-compute container
 

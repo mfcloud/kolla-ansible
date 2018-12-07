@@ -289,6 +289,7 @@
       or policy_overwriting.changed | bool
       or vcenter_ca_file | bool
       or nova_compute_container.changed | bool
+      or zvmsdk_confs.changed | bool
 
 - name: Restart nova-compute-ironic container
   vars:

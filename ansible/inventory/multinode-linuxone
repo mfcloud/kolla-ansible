@@ -308,9 +308,6 @@ nova
 [neutron-server:children]
 control
 
-[neutron-zvm-agent:children]
-neutron
-
 [neutron-dhcp-agent:children]
 neutron
 

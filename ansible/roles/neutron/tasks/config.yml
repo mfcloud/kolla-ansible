@@ -437,22 +437,16 @@
 
 - name: Copying over neutron_zvm_plugin.ini
   become: true
-  vars:
-    service_name: "{{ item.key }}"
-    services_need_neutron_zvm_plugin_ini:
-      - "neutron-zvm-agent"
   merge_configs:
     sources:
       - "{{ role_path }}/templates/neutron_zvm_plugin.ini.j2"
-    dest: "{{ node_config_directory }}/{{ item.key }}/neutron_zvm_plugin.ini"
+    dest: "{{ node_config_directory }}/neutron-zvm-agent/neutron_zvm_plugin.ini"
   register: neutron_zvm_plugin_inis
   when:
-    - item.value.eanble | bool
-    - item.value.host_in_groups | bool
-    - item.key in services_need_neutron_zvm_plugin_ini
-  with_dict: "{{ neutron_services }}"
+    - nova_compute_virt_type == 'zvm'
+    - inventory_hostname in groups['compute']
   notify:
-    - "Restart {{ item.key }} container"
+    - "Restart neutron-zvm-agent container"
 
 # TODO check the environment change
 - name: Check neutron containers

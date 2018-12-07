@@ -856,3 +856,10 @@ enable_prometheus_memcached_exporter: "{{ enable_memcached | bool }}"
 enable_prometheus_cadvisor: "{{ enable_prometheus | bool }}"
 enable_prometheus_alertmanager: "{{ enable_prometheus | bool }}"
 prometheus_alertmanager_user: "admin"
+
+#############
+# zvm options
+#############
+zvm_instance_name_template: "ZK%06X"
+zvmsdk_auth_token: ""
+zvm_cloud_connector_url: ""

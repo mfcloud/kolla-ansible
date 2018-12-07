@@ -396,6 +396,7 @@ glance_enable_rolling_upgrade: "no"
 
 # Valid options are [ qemu, kvm, vmware, xenapi ]
 #nova_compute_virt_type: "kvm"
+nova_compute_virt_type: "zvm"
 
 # The number of fake driver per compute node
 #num_nova_fake_per_node: 5
@@ -504,3 +505,8 @@ tempest_floating_network_name:
 #enable_prometheus_cadvisor: "{{ enable_prometheus | bool }}"
 #enable_prometheus_memcached: "{{ enable_prometheus | bool }}"
 #enable_prometheus_alertmanager: "{{ enable_prometheus | bool }}"
+
+
+zvm_instance_name_template: "ZK%06X"
+zvmsdk_auth_token: ""
+zvm_cloud_connector_url: ""

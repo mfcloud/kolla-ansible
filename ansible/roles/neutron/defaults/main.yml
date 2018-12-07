@@ -98,7 +98,7 @@ neutron_services:
     container_name: "neutron_l3_agent"
     image: "{{ neutron_l3_agent_image_full }}"
     privileged: True
-    enabled: "{{ neutron_plugin_agent not in ['vmware_nsxv', 'vmware_nsxv3', 'vmware_dvs'] and not enable_opendaylight_l3 | bool and not enable_onos | bool }}"
+    enabled: "{{ neutron_plugin_agent not in ['vmware_nsxv', 'vmware_nsxv3', 'vmware_dvs', 'zvm'] and not enable_opendaylight_l3 | bool and not enable_onos | bool }}"
     host_in_groups: >-
       {{
       inventory_hostname in groups['neutron-l3-agent']
@@ -196,15 +196,16 @@ neutron_services:
     container_name: "neutron-zvm-agent"
     image: "{{ neutron_zvm_agent_image_full }}"
     privileged: True
-    enabled: true
-    group: "ironic-neutron-agent"
-    host_in_groups: "{{ inventory_hostname in groups['neutron-zvm-agent'] }}"
+    enabled: True
+    group: "neutron-zvm-agent"
+    host_in_groups: "{{ inventory_hostname in groups['compute'] }}"
     volumes:
       - "{{ node_config_directory }}/neutron-zvm-agent/:{{ container_config_directory }}/:ro"
       - "/etc/localtime:/etc/localtime:ro"
       - "/lib/modules:/lib/modules:ro"
       - "/run/:/run/:shared"
       - "kolla_logs:/var/log/kolla/"
+      - "{{ node_config_directory }}/zvmsdk/:/etc/zvmsdk/:ro"
     dimensions: "{{ neutron_zvm_agent_dimensions }}"
 
 ####################
