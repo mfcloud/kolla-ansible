@@ -62,6 +62,7 @@
       - "neutron-bgp-dragent"
       - "neutron-infoblox-ipam-agent"
       - "neutron-sriov-agent"
+      - "neutron-zvm-agent"
   merge_configs:
     sources:
       - "{{ role_path }}/templates/neutron.conf.j2"
@@ -133,6 +134,7 @@
       - "neutron-openvswitch-agent"
       - "neutron-infoblox-ipam-agent"
       - "neutron-server"
+      - "neutron-zvm-agent"
   merge_configs:
     sources:
       - "{{ role_path }}/templates/ml2_conf.ini.j2"
@@ -379,6 +381,7 @@
       - "neutron-lbaas-agent"
       - "neutron-bgp-dragent"
       - "neutron-sriov-agent"
+      - "neutron-zvm-agent"
   template:
     src: "{{ node_custom_config }}/neutron/policy.json"
     dest: "{{ node_config_directory }}/{{ service_name }}/policy.json"
@@ -415,6 +418,7 @@
       - "neutron-linuxbridge-agent"
       - "neutron-openvswitch-agent"
       - "neutron-server"
+      - "neutron-zvm-agent"
   template:
     src: "{{ item.2.path }}"
     dest: "{{ node_config_directory }}/{{ service_name }}/{{ item.2.path | basename }}"
@@ -430,6 +434,25 @@
     - "{{ check_extra_ml2_plugins.files }}"
   notify:
     - "Restart {{ item.0 }} container"
+
+- name: Copying over neutron_zvm_plugin.ini
+  become: true
+  vars:
+    service_name: "{{ item.key }}"
+    services_need_neutron_zvm_plugin_ini:
+      - "neutron-zvm-agent"
+  merge_configs:
+    sources:
+      - "{{ role_path }}/templates/neutron_zvm_plugin.ini.j2"
+    dest: "{{ node_config_directory }}/{{ item.key }}/neutron_zvm_plugin.ini"
+  register: neutron_zvm_plugin_inis
+  when:
+    - item.value.eanble | bool
+    - item.value.host_in_groups | bool
+    - item.key in services_need_neutron_zvm_plugin_ini
+  with_dict: "{{ neutron_services }}"
+  notify:
+    - "Restart {{ item.key }} container"
 
 # TODO check the environment change
 - name: Check neutron containers

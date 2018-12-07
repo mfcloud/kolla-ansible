@@ -16,6 +16,8 @@ mechanism_drivers = openvswitch,{% if enable_ironic_neutron_agent | bool %}barem
 mechanism_drivers = linuxbridge,l2population
 {% elif neutron_plugin_agent == "opendaylight" %}
 mechanism_drivers = {{ opendaylight_mechanism_driver }}
+{% elif neutron_plugin_agent == "zvm" %}
+mechanism_drivers = zvm
 {% endif %}
 
 {% if neutron_extension_drivers %}
@@ -51,11 +53,8 @@ network_vlan_ranges =
 {% endif %}
 
 [ml2_type_flat]
-{% if enable_ironic | bool %}
-flat_networks = *
-{% else %}
-flat_networks = {% for bridge in neutron_bridge_name.split(',') %}physnet{{ loop.index0 + 1 }}{% if not loop.last %},{% endif %}{% endfor %}
-{% endif %}
+# TODO: add config option to set this
+flat_networks = xcatvsw2
 
 [ml2_type_vxlan]
 vni_ranges = 1:1000

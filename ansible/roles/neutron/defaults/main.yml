@@ -192,6 +192,20 @@ neutron_services:
       - "/etc/localtime:/etc/localtime:ro"
       - "kolla_logs:/var/log/kolla/"
     dimensions: "{{ ironic_neutron_agent_dimensions }}"
+  neutron-zvm-agent:
+    container_name: "neutron-zvm-agent"
+    image: "{{ neutron_zvm_agent_image_full }}"
+    privileged: True
+    enabled: true
+    group: "ironic-neutron-agent"
+    host_in_groups: "{{ inventory_hostname in groups['neutron-zvm-agent'] }}"
+    volumes:
+      - "{{ node_config_directory }}/neutron-zvm-agent/:{{ container_config_directory }}/:ro"
+      - "/etc/localtime:/etc/localtime:ro"
+      - "/lib/modules:/lib/modules:ro"
+      - "/run/:/run/:shared"
+      - "kolla_logs:/var/log/kolla/"
+    dimensions: "{{ neutron_zvm_agent_dimensions }}"
 
 ####################
 # Database
@@ -251,6 +265,10 @@ ironic_neutron_agent_image: "{{ docker_registry ~ '/' if docker_registry else ''
 ironic_neutron_agent_tag: "{{ neutron_tag }}"
 ironic_neutron_agent_image_full: "{{ ironic_neutron_agent_image }}:{{ ironic_neutron_agent_tag }}"
 
+neutron_zvm_agent_image: "{{ docker_registry ~ '/' if docker_registry else '' }}{{ docker_namespace }}/{{ kolla_base_distro }}-{{ neutron_install_type }}-neutron-zvm-agent"
+neutron_zvm_agent_tag: "{{ neutron_tag }}"
+neutron_zvm_agent_image_full: "{{ neutron_zvm_agent_image }}:{{ neutron_zvm_agent_tag }}"
+
 neutron_dhcp_agent_dimensions: "{{ default_container_dimensions }}"
 neutron_l3_agent_dimensions: "{{ default_container_dimensions }}"
 neutron_lbaas_agent_dimensions: "{{ default_container_dimensions }}"
@@ -263,6 +281,7 @@ neutron_bgp_dragent_dimensions: "{{ default_container_dimensions }}"
 neutron_infoblox_ipam_agent_dimensions: "{{ default_container_dimensions }}"
 neutron_openvswitch_agent_xenapi_dimensions: "{{ default_container_dimensions }}"
 ironic_neutron_agent_dimensions: "{{ default_container_dimensions }}"
+neutron_zvm_agent_dimensions: "{{ default_container_dimensions }}"
 
 
 ####################
