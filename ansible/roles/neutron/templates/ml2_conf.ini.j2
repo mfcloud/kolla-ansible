@@ -54,7 +54,7 @@ network_vlan_ranges =
 
 [ml2_type_flat]
 # TODO: add config option to set this
-flat_networks = xcatvsw2
+flat_networks = {{ zvm_vswitches }}
 
 [ml2_type_vxlan]
 vni_ranges = 1:1000

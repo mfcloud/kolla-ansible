@@ -510,3 +510,5 @@ tempest_floating_network_name:
 zvm_instance_name_template: "ZK%06X"
 zvmsdk_auth_token: ""
 zvm_cloud_connector_url: ""
+zvm_host: ""
+zvm_vswitches: ""
