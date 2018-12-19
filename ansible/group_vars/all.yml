@@ -865,5 +865,6 @@ zvmsdk_auth_token: ""
 zvm_cloud_connector_url: ""
 zvm_host: ""
 zvm_vswitches: ""
+zcc_public_key: ""
 
 use_centos_repo: "no"

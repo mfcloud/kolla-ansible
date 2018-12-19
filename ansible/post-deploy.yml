@@ -7,3 +7,12 @@
         src: "roles/common/templates/admin-openrc.sh.j2"
         dest: "{{ CONFIG_DIR | default('/etc/kolla') }}/admin-openrc.sh"
       run_once: True
+
+- name: Add zcc public key to compute node
+  hosts: compute
+  tasks:
+    - name: Add zcc public key to compute node to let zcc be able to access it
+      shell: echo {{ zcc_public_key }} >> /var/lib/docker/volumes/nova_compute/_data/.ssh/authorized_keys
+      when:
+        - zcc_public_key != ''
+        - ansible_architecture == 's390x'
