@@ -1,0 +1,5 @@
+[local-yum]
+name=local-yum
+baseurl=http://SERVER:REPO_PORT/s390x
+enabled=1
+gpgcheck=0

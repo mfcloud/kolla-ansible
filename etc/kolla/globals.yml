@@ -63,6 +63,9 @@ docker_namespace: "linuxone"
 #download docker deb package
 local_docker_apt_url: "http://LOCAL_APT_REPO/download.docker.com/linux/ubuntu"
 
+#Below option is used to setup local docker yum repo
+#docker_yum_url: "http://DOCKER_YUM_REPO"
+
 ###################
 # Messaging options
 ###################

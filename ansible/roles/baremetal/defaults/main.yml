@@ -25,11 +25,17 @@ debian_pkg_install:
  - ntp
 
 redhat_pkg_install:
- - epel-release
- - docker-engine-1.12.0
+ - "docker-ce"
  - git
  - python-setuptools
  - ntp
+ - sudo
+
+redhat_pkg_install_s390x:
+ - git
+ - python-setuptools
+ - ntp
+ - sudo
 
 suse_pkg_install:
  - docker
