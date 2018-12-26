@@ -3,12 +3,16 @@
 set -o xtrace
 set -o errexit
 
+sudo yum install -y wget
+
 wget https://download.docker.com/linux/static/stable/s390x/docker-18.06.1-ce.tgz
 tar xzvf docker-18.06.1-ce.tgz
 sudo cp docker/* /usr/bin/
+rm -rf docker
+rm -rf docker-18.06.1-ce.tgz
 
 # Setup Docker
-sudo tee /etc/systemd/system/docker.servic << EOF
+sudo tee /etc/systemd/system/docker.service << EOF
 [Unit]
 Description=Docker Application Container Engine
 Documentation=https://docs.docker.com
@@ -20,7 +24,7 @@ Type=notify
 # the default is not to use systemd for cgroups because the delegate issues still
 # exists and systemd currently does not support the cgroup feature set required
 # for containers run by docker
-ExecStart=/usr/bin/dockerd --insecure-registry 9.115.112.35:5001
+ExecStart=/usr/bin/dockerd
 ExecReload=/bin/kill -s HUP $MAINPID
 # Having non-zero Limit*s causes performance problems due to accounting overhead
 # in the kernel. We recommend using cgroups to do container-local accounting.
