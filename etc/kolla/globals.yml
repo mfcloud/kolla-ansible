@@ -506,6 +506,8 @@ tempest_floating_network_name:
 #enable_prometheus_memcached: "{{ enable_prometheus | bool }}"
 #enable_prometheus_alertmanager: "{{ enable_prometheus | bool }}"
 
+# zvm only supports flat network
+neutron_tenant_network_types: "flat"
 
 zvm_instance_name_template: "ZK%06X"
 zvmsdk_auth_token: ""
