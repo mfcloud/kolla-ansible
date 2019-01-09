@@ -16,6 +16,26 @@
   when:
     dockerd_exists.stat.exists == True
 
+- name: Configure docker service for s390x on Red Hat
+  become: True
+  template:
+    src: docker_systemd_service_s390x.j2
+    dest: /etc/systemd/system/docker.service
+  register: docker_configured
+  when:
+    - ansible_os_family == 'RedHat'
+    - ansible_architecture == 's390x'
+
+- name: Configure docker socket for s390x on Red Hat
+  become: True
+  template:
+    src: docker_systemd_socket_s390x.j2
+    dest: /etc/systemd/system/docker.socket
+  register: docker_configured
+  when:
+    - ansible_os_family == 'RedHat'
+    - ansible_architecture == 's390x'
+
 - name: Configure docker service
   become: True
   template:

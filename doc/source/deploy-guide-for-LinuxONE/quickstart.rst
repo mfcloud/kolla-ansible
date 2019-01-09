@@ -19,21 +19,21 @@ controller, and compute.
   also where the kolla-ansible tool would be installed, configured and run.
 
   System requirements:
-   * Ubuntu 16.04/x86_64 platform
+   * Ubuntu 16.04/x86_64 or Red Hat 7.5/x86_64 platform
    * 1 network interfaces
    * 8GB main memory
-   * 400GB disk space
+   * 400GB disk space for ubuntu without network connection, 50GB disk space for Red Hat either with or not network connection
 - ``controller node``: This is where the OpenStack controller services will be deployed onto.
 
   System requirements:
-   * Ubuntu 16.04/x86_64 platform
+   * Ubuntu 16.04/x86_64 or Red Hat 7.5/x86_64 platform
    * 2 network interfaces
    * 8GB main memory
    * 40GB disk space
 - ``compute node``: This is where the OpenStack compute services will be deployed onto.
 
   System requirements:
-   * Ubuntu 16.04/LinuxONE platform
+   * Ubuntu 16.04/LinuxONE, Red Hat 7.5 with 4.14 alt-kernel/LinuxONE platform
    * 1 network interface
    * 8GB main memory
    * 10GB disk space
@@ -65,6 +65,7 @@ After finish all the required steps described, the files should be organized as 
 
 ::
 
+    For Ubuntu:
     root@deployer:/data/OpenStackCE# tree -L 1
     .
     |-- deployment-docker-images.tar
@@ -74,6 +75,18 @@ After finish all the required steps described, the files should be organized as 
     |-- pypi
     `-- ubuntu-mirror
 
+
+::
+
+    For Red Hat:
+    root@deployer:/data/OpenStackCE# tree -L 1
+    .
+    |-- deployment-docker-images.tar
+    |-- docker-registry
+    |-- kolla-ansible
+    |-- pypi
+    `-- rhel-repo
+
 -  ``deployment-docker-images.tar`` - Contains the three docker images: pypiserver, nginx, and registry
    which will be used to run the local pypi server, package repository and docker image registry
    respectively.
@@ -82,7 +95,8 @@ After finish all the required steps described, the files should be organized as 
 -  ``docker-registry`` - Contains the built docker images used to deploy OpenStack services, including
    both the x86_64 arch images for controller node and s390x arch images for compute node.
 -  ``pypi`` - Contains the needed python packages used by kolla-ansible to deploy OpenStack services.
--  ``ubuntu-mirrir`` - Contains the ubuntu mirror and docker mirror which provides all the deb packages
+-  ``rhel-repo`` - Contains the needed rpm packages used by kolla-ansible to deploy OpenStack services on Red Hat 7.5 platform.
+-  ``ubuntu-mirror`` - Contains the ubuntu mirror and docker mirror which provides all the deb packages
    used by kolla-ansible in the deploy process.
 
 These files need to be put into a single folder, generally we recommend you to put them into /data/OpenStackCE
@@ -100,13 +114,6 @@ You can check the tool usage by running:
 ::
 
     /data/OpenStackCE/kolla-ansible/tools/deployer_for_linuxone/setup-deployment-server -h
-
-.. note::
-
-    Please note that if the deployment server is also planned to be used as the OpenStack Controller node, since
-    by default keystone service would use port 5000 and the setup-deployment-server tool run docker registry on
-    port 5000 as well, you need to fix this conflict by specifying the docker registry port with ``-d <registry_port>``
-    when running the setup-deployment-tool in the following, eg. to use port 5001.
 
 Then run the tool with your arguments if required:
 ::
@@ -132,7 +139,7 @@ When the tool finishes successfully, you can see there are three containers runn
     root@deployer:/data/OpenStackCE# docker ps
     CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                    NAMES
     51417101e46f        pypiserver:master   "pypi-server -p 8080…"   About an hour ago   Up About an hour    0.0.0.0:8080->8080/tcp   pypiserver
-    85de3de2fedb        registry:2          "/entrypoint.sh /etc…"   About an hour ago   Up About an hour    0.0.0.0:5000->5000/tcp   registry
+    85de3de2fedb        registry:2          "/entrypoint.sh /etc…"   About an hour ago   Up About an hour    0.0.0.0:5001->5000/tcp   registry
     430bee95f31b        nginx:1.15.3        "nginx -g 'daemon of…"   About an hour ago   Up About an hour    0.0.0.0:8000->80/tcp     nginx
 
 Also, you can see the deployer node has been setup to use local PYPI server and package repository:
@@ -230,14 +237,29 @@ Kolla-ansible Global Settings
 most of the required options for you, including:
 ::
 
-    ---
+    For Ubuntu:
     kolla_base_distro: "ubuntu"
     kolla_install_type: "binary"
     openstack_release: "queens"
     node_custom_config: "/etc/kolla/config"
-    docker_registry: "DEPLOYER_IP:5000"
+    docker_registry: "DEPLOYER_IP:5001"
     docker_namespace: "linuxone"
     local_docker_apt_url: "http://DEPLOYER_IP:8000/download.docker.com/linux/ubuntu"
+    enable_fluentd: "no"
+    enable_haproxy: "no"
+    enable_heat: "no"
+
+::
+
+    For Red Hat:
+    kolla_base_distro: "ubuntu"
+    kolla_install_type: "binary"
+    openstack_release: "queens"
+    node_custom_config: "/etc/kolla/config"
+    docker_registry: "DEPLOYER_IP:5001"
+    docker_namespace: "linuxone"
+    #docker_yum_url option will be active only if you run the script with default local package resource
+    docker_yum_url: "http://9.123.153.202:8000/x86_64/docker-ce"
     enable_fluentd: "no"
     enable_haproxy: "no"
     enable_heat: "no"
@@ -314,4 +336,3 @@ Install basic OpenStack CLI clients:
 ::
 
     pip install python-openstackclient python-glanceclient python-neutronclient
-

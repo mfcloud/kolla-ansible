@@ -19,15 +19,15 @@ Two servers are needed to do the preparation steps:
 - One x86_64 server which usually can be the same server as the deployment server.
 
  System requirements:
-   * Ubuntu 16.04/x86_64 platform
+   * Ubuntu 16.04/x86_64 or Red Hat 7.5/x86_64 platform
    * 1 network interfaces
    * 8GB main memory
-   * 400GB disk space
+   * 400GB disk space for Ubuntu, 50GB disk space for Red Hat
 
 - One server on LinuxONE which can be same server as the target compute node.
 
   System requirements:
-   * Ubuntu 16.04/LinuxONE platform
+   * Ubuntu 16.04/LinuxONE or Red Hat 7.5 with 4.14 alt-kernel/LinuxONE platform
    * 1 network interface
    * 8GB main memory
    * 10GB disk space
@@ -103,11 +103,11 @@ have same settings.
   ::
 
     # mkdir -p /data/OpenStackCE/docker-registry
-    # docker run -d --name registry --restart=always -p 5000:5000 -v /data/OpenStackCE/docker-registry:/var/lib/registry registry:2
+    # docker run -d --name registry --restart=always -p 5001:5000 -v /data/OpenStackCE/docker-registry:/var/lib/registry registry:2
     7039bf35141e3cad9c55a49b74d53c4aec250067ccbf606cad4f79cb93dc16cd
     # docker ps
     CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                    NAMES
-    7039bf35141e        registry:2          "/entrypoint.sh /etc…"   14 seconds ago      Up 12 seconds       0.0.0.0:5000->5000/tcp   registry
+    7039bf35141e        registry:2          "/entrypoint.sh /etc…"   14 seconds ago      Up 12 seconds       0.0.0.0:5001->5000/tcp   registry
 
 - Update docker configuration on the two servers so that the insecure private image repository can be accessed.
   This need to be done on both x86 and linuxone side.
@@ -118,7 +118,7 @@ have same settings.
 
         # cat /etc/docker/daemon.json
         {
-          "insecure-registries": ["x86_64_SERVER_IP:5000"]
+          "insecure-registries": ["x86_64_SERVER_IP:5001"]
         }
         # systemctl restart docker
 
@@ -132,13 +132,13 @@ On x86_64 server, build your images with the following commands:
 
     # mkdir -p /etc/kolla
     # cp $KOLLA_BASE/etc/kolla/kolla-build.conf.x86 /etc/kolla/kolla-build.conf
-    # kolla-build --push --registry $x86_64_SERVER_IP:5000
+    # kolla-build --push --registry $x86_64_SERVER_IP:5001
 
 Use the tool provided in the kolla project to rename the built images with suffix '-x86' added.
 
   ::
 
-    # bash $KOLLA_BASE/multi-arch-repository/rename_image -a x86 -n linuxone -t queens -r $x86_64_SERVER_IP:5000 -p
+    # bash $KOLLA_BASE/multi-arch-repository/rename_image -a x86 -n linuxone -t queens -r $x86_64_SERVER_IP:5001 -p
 
 
 Build images for LinuxONE
@@ -158,7 +158,7 @@ the re-tagged images to the image registry server running on the remote x86_64 s
 
   ::
 
-    # bash $KOLLA_BASE/multi-arch-repository/rename_image -a s390x -n linuxone -t queens -r $x86_64_SERVER_IP:5000
+    # bash $KOLLA_BASE/multi-arch-repository/rename_image -a s390x -n linuxone -t queens -r $x86_64_SERVER_IP:5001
 
 
 Create multi-arch image repository with docker manifest
@@ -190,15 +190,18 @@ local docker image registry:
 
   ::
 
-    # bash $KOLLA_BASE/multi-arch-repository/multi-arch -n linuxone -t queens -r localhost:5000
+    # bash $KOLLA_BASE/multi-arch-repository/multi-arch -n linuxone -t queens -r localhost:5001
 
   .. note::
 
     The ``localhost`` above should be hostname instead of ip address or you will
     get an error in current ``docker manifest`` command.
 
-Download Ubuntu mirror
-~~~~~~~~~~~~~~~~~~~~~~
+Download OS packages
+~~~~~~~~~~~~~~~~~~~~
+
+For Ubuntu platform
+-------------------
 
 To avoid the requirement of Internet access in the deploy process, we need to download the Ubuntu packages and put onto the deployment
 server. This section contains step-by-step guides on how to use apt-mirror to download the mirror to local, all the steps need to be done
@@ -250,6 +253,47 @@ on the x86-64 server.
   ::
 
     # wget -O /data/OpenStackCE/ubuntu-mirror/download.docker.com/linux/ubuntu/gpg https://download.docker.com/linux/ubuntu/gpg
+
+For Red Hat platform
+--------------------
+
+When we use kolla-ansible to deploy OpenStack cloud, there are several rpm packages required which usually download from website.
+To avoid the Internet requirement in the deploy process, we need to download the required packages to local and serve them from the deployment server.
+
+The following steps required to be done on the x86_64 server.
+
+- Download all the rpm packages for both x86_64 and s390x server. Please refer to
+  ref:`RPM packages List for Red Hat 7.5 platform`
+  for details rpm list.
+
+  ::
+
+   Note this list is applicable for Red Hat 7.5.
+
+- Move all the rpm packages to /data/OpenStackCE folder
+
+  ::
+
+   # mkdir /data/OpenStackCE/rhel-repo
+   # mkdir /data/OpenStackCE/rhel-repo/x86_64
+   # mkdir /data/OpenStackCE/rhel-repo/s390x
+   # mv x86_64_packages /data/OpenStackCE/rhel-repo/x86_64
+   # mv s390x_pacakges /data/OpenStackCE/rhel-repo/s390x
+   # mv epel-release-latest-7.noarch.rpm /data/OpenStackCE/rhel-repo
+
+
+- Install createrepo tool
+
+  ::
+
+   yum install createrepo
+
+- Create repodata for both x86_64 and s390x
+
+  ::
+
+   createrepo /data/OpenStackCE/rhel-repo/x86_64
+   createrepo /data/OpenStackCE/rhel-repo/s390x
 
 
 Download required PYPI packages
@@ -357,11 +401,28 @@ requirements.
 
 This section needs to be done on the x86-64 server.
 
+- For Ubuntu platform
+
   ::
 
   # mkdir -p /data/OpenStackCE/docker-ce
   # cp /data/OpenStackCE/ubuntu-mirror/download.docker.com/linux/ubuntu/dists/xenial/pool/stable/amd64/docker-ce_18.06.1~ce~3-0~ubuntu_amd64.deb /data/OpenStackCE/docker-ce/
   # cp /data/OpenStackCE/ubuntu-mirror/archive.ubuntu.com/ubuntu/pool/main/libt/libtool/libltdl7_2.4.6-0.1_amd64.deb /data/OpenStackCE/docker-ce/
+
+- For Red Hat x86_64 platform
+
+  ::
+
+   mkdir -p /data/OpenStackCE/rhel-repo/x86_64/docker-ce/repo/main/redhat/7
+   cp containerd.io-1.2.0-3.el7.x86_64.rpm  container-selinux-2.74-1.el7.noarch.rpm  docker-ce-18.09.0-3.el7.x86_64.rpm  docker-ce-cli-18.09.0-3.el7.x86_64.rpm /data/OpenStackCE/rhel-repo/x86_64/docker-ce/repo/main/redhat/7
+   createrepo /data/OpenStackCE/rhel-repo/x86_64/docker-ce/repo/main/redhat/7
+
+- For Red Hat s390x platform, download the docker binary files
+
+  ::
+
+   wget https://download.docker.com/linux/static/stable/s390x/docker-18.06.1-ce.tgz
+   cp docker-18.06.1-ce.tgz /data/OpenStackCE/rhel-repo/s390x
 
 Clone kolla-ansible project from github
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -374,4 +435,3 @@ clone the project to local.
   # git clone -b stable/queens https://github.com/mfcloud/kolla-ansible.git /data/OpenStackCE/kolla-ansible
 
 With all the above steps in this guide done, the ``/data/OpenStackCE`` folder contains all the files required to setup the deployment server.
-
