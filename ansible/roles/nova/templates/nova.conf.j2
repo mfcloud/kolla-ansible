@@ -48,7 +48,9 @@ compute_driver = libvirt.LibvirtDriver
 config_drive_format=iso9660
 force_config_drive=True
 instance_name_template= {{ zvm_instance_name_template }}
+{% if service_name == "nova-compute" %}
 host={{ zvm_host }}
+{% endif %}
 {% endif %}
 
 # Though my_ip is not used directly, lots of other variables use $my_ip
