@@ -398,7 +398,7 @@ echo "${pip_conf}" > \${HOME}/.pip/pip.conf
 EOF
     sed -i "s/SERVER:REPO_PORT/${BIND_ADDR}:${REPOSITORY_PORT}/g" /etc/kolla/openstack-ce-presetups.sh
     chmod +x /etc/kolla/openstack-ce-presetups.sh
-    check_status $?
+    check_status $? "generate_scripts"
 }
 
 function update_global {
@@ -540,54 +540,65 @@ if [[ ! -d "$CE_BASE" || ! -d "${CE_BASE}/OpenStackCE" ]]; then
     echo "The specified base directory $CE_BASE or ${CE_BASE}/OpenStackCE does not exists."
     exit 1
 fi
+
 #Get deployer OS
 get_server_os
+if [[ $? -ne 0 ]]; then
+    echo "Error: get_server_os failed!"
+    exit -1
+fi
 
 #Get deployer ip address
 get_bind_addr
+if [[ $? -ne 0 ]]; then
+    echo "Error: get_bind_addr failed!"
+    exit -1
+fi
 
 if [ ${INSTALL_DOCKER} -eq 1 ]; then
     if [[ "$PACKAGE_SOURCE" == "online" ]];then
-        install_docker_online
+        install_docker_online || (echo "Error: install_docker_online failed";exit -1)
     else
-        install_docker_local
+        install_docker_local || (echo "Error: install_docker_local failed";exit -1)
     fi
 
-    load_docker_images
+    load_docker_images || (echo "Error: load_docker_images failed";exit -1)
 
-    kill_containers
+    kill_containers || (echo "Error: kill_containers failed";exit -1)
 
-    start_package_server
+    start_package_server || (echo "Error: start_package_server failed";exit -1)
 
-    start_docker_registry
+    start_docker_registry || (echo "Error: start_docker_registry failed";exit -1)
 
-    start_PYPI_server
+    start_PYPI_server || (echo "Error: start_PYPI_server failed";exit -1)
 fi
 
 if [ $SETUP_REPO -eq 1 ]; then
-    generate_local_repo_file
+    generate_local_repo_file || (echo "Error: generate_local_repo_file failed";exit -1)
 
-    generate_pip_conf
+    generate_pip_conf || (echo "Error: generate_pip_conf failed";exit -1)
 
-    setup_local_repo
+    setup_local_repo || (echo "Error: setup_local_repo failed";exit -1)
 
-    setup_local_PYPI_server
+    setup_local_PYPI_server || (echo "Error: setup_local_PYPI_server failed";exit -1)
+
 fi
 
 if [ $INSTALL_KOLLA_ANSIBLE -eq 1 ]; then
-    install_git_pip
+    install_git_pip || (echo "Error: install_git_pip failed";exit -1)
 
-    install_kolla_ansible_requirements
+    install_kolla_ansible_requirements || (echo "Error: install_kolla_ansible_requirements failed";exit -1)
 
-    install_kolla_ansible
+    install_kolla_ansible || (echo "Error: install_kolla_ansible failed";exit -1)
+
 fi
 
 if [ $CONFIG_KOLLA_ANSIBLE -eq 1 ]; then
-    copy_config_files
+    copy_config_files || (echo "Error: copy_config_files failed";exit -1)
 fi
 
 if [ $GEN_SCRIPT -eq 1 ]; then
-    generate_scripts
+    generate_scripts || (echo "Error: generate_scripts failed";exit -1)
 fi
 
 update_global
