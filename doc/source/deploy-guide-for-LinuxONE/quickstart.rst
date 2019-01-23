@@ -33,7 +33,7 @@ controller, and compute.
 - ``compute node``: This is where the OpenStack compute services will be deployed onto.
 
   System requirements:
-   * Ubuntu 16.04/LinuxONE, Red Hat 7.5 with 4.14 alt-kernel/LinuxONE platform
+   * Ubuntu 16.04/LinuxONE, Red Hat 7.5 with 4.14 alt-kernel/LinuxONE platform, SUSE 12SP3/LinuxONE
    * 1 network interface
    * 8GB main memory
    * 10GB disk space
@@ -87,6 +87,15 @@ After finish all the required steps described, the files should be organized as 
     |-- pypi
     `-- rhel-repo
 
+
+::
+
+    For SUSE:
+    root@deployer:/data/OpenStackCE# tree -L 1
+    .
+    `-- sles-repo
+
+
 -  ``deployment-docker-images.tar`` - Contains the three docker images: pypiserver, nginx, and registry
    which will be used to run the local pypi server, package repository and docker image registry
    respectively.
@@ -96,6 +105,7 @@ After finish all the required steps described, the files should be organized as 
    both the x86_64 arch images for controller node and s390x arch images for compute node.
 -  ``pypi`` - Contains the needed python packages used by kolla-ansible to deploy OpenStack services.
 -  ``rhel-repo`` - Contains the needed rpm packages used by kolla-ansible to deploy OpenStack services on Red Hat 7.5 platform.
+-  ``sles-repo`` - Contains the needed rpm packages used by kolla-ansible to deploy OpenStack services on SUSE 12SP3 platform.
 -  ``ubuntu-mirror`` - Contains the ubuntu mirror and docker mirror which provides all the deb packages
    used by kolla-ansible in the deploy process.
 
