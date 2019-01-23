@@ -6,5 +6,4 @@ baseurl={{ docker_yum_url }}/repo/main/centos/{{ ansible_distribution_major_vers
 baseurl={{ docker_yum_url }}/repo/main/{{ ansible_distribution | lower }}/{{ ansible_distribution_major_version | lower }}
 {% endif %}
 enabled=1
-gpgcheck=1
-gpgkey={{ docker_yum_url }}/gpg
+gpgcheck=0

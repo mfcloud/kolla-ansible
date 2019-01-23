@@ -99,11 +99,11 @@ function get_bind_addr {
 function install_docker_online {
     section "Install docker-ce on deployer server online"
     if [[ ${SERVER_OS} == 'redhat' ]];then
-    yum install -y yum-utils device-mapper-persistent-data lvm2
-    yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-    cd ${CE_BASE}/OpenStackCE/rhel-repo/x86_64/docker-ce/repo/main/redhat/7/
-    yum install -y container-selinux-2.74-1.el7.noarch.rpm
-    yum install -y docker-ce
+        yum install -y yum-utils device-mapper-persistent-data lvm2
+        yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+        cd ${CE_BASE}/OpenStackCE/rhel-repo/x86_64/docker-ce/repo/main/redhat/7/
+        yum install -y container-selinux-2.74-1.el7.noarch.rpm
+        yum install -y docker-ce
     fi
     systemctl start docker
     status=`systemctl status docker -q --no-pager | grep "Active: active (running)"`
@@ -114,11 +114,11 @@ function install_docker_online {
 function install_docker_local {
     section "Install docker-ce from local repo"
     if [[ ${SERVER_OS} == 'ubuntu' ]];then
-    dpkg -i ${CE_BASE}/OpenStackCE/docker-ce/*.deb 1>/dev/null
-    check_status $? "Install docker-ce"
-    status=`systemctl status docker -q --no-pager | grep "Active: active (running)"`
-    rc=$(if [[ -z "$status" ]]; then echo 1;else echo 0;fi)
-    check_status $rc "Start docker service"
+        dpkg -i ${CE_BASE}/OpenStackCE/docker-ce/*.deb 1>/dev/null
+        check_status $? "Install docker-ce"
+        status=`systemctl status docker -q --no-pager | grep "Active: active (running)"`
+        rc=$(if [[ -z "$status" ]]; then echo 1;else echo 0;fi)
+        check_status $rc "Start docker service"
     elif [[ ${SERVER_OS} == 'redhat' ]];then
         cd ${CE_BASE}/OpenStackCE/rhel-repo/x86_64/docker-ce/repo/main/redhat/7
         yum install -y container-selinux-2.74-1.el7.noarch.rpm
