@@ -4,7 +4,7 @@
 # Including setup docker image registry, local package repo, local pypi server, install
 # kolla-ansible and its dependencies.
 
-
+#TODO: auto-detect compute and controller nodes' OS and implement createrepo here.
 function usage {
     cat <<EOF
 Usage: $0 [options]
@@ -19,15 +19,28 @@ Options:
                                                If not specified, will try to automatically get the address using ifconfig and exclude
                                                the address 127.0.0.1 and 172.17.0.1(which is used by docker0).
                                                If two or more address are filtered, will abort.
-    --install-, -b <CE_base_dir>               Specify the base directory, default is /data
+    --setup-repo, -s <OS>                      Setup local repository and install pip only for the indicated OS (ubuntu/redhat/suse) for all nodes (deployer, controller and compute).
+                                               <OS> is the OS type of controller and compute and deployer's node is auto-detected.
+                                               If there are several kinds of OS for controller and compute nodes, we need to run this command several time with different <OS>.
+                                               The auto-detection will be implemented later.
     --install-docker, -k                       Install docker only and restart package repository server, pypi server and docker registry server
-    --setup-repo, -s                           Setup local repository and install pip only
     --install-kolla-ansible, -t                Install kolla-ansible only
     --config-kolla-ansible, -c                 Configure kolla-ansible only
     --gen-script, -g                           Generate the openstack-ce-presetups.sh only
     --help, -h                                 Show this usage information
 EOF
 }
+
+SHORT_OPTS="hor:p:d:b:a:s:k,t,c,g"
+LONG_OPTS="help,online,repo-port:,pypi-port:,docker-registry-port:,base-dir:,bind-addr:,setup-repo:install-docker,install-kolla-ansible,config-kolla-ansible,gen-script"
+ARGS=$(getopt -o "${SHORT_OPTS}" -l "${LONG_OPTS}" --name "$0" -- "$@") || { usage >&2; exit 2; }
+
+eval set -- "$ARGS"
+
+
+###################################################################################
+# NOTE: All the functions are for deployer ONLY except those marked specially!!!
+###################################################################################
 
 function section {
     echo ""
@@ -53,6 +66,7 @@ function check_status {
     fi
 }
 
+#Get the current server's OS
 function get_server_os {
     [[ ${SERVER_OS} == '' ]] && grep -i 'ubuntu' /proc/version && SERVER_OS='ubuntu'
     [[ ${SERVER_OS} == '' ]] && grep -i 'suse' /proc/version && SERVER_OS='suse'
@@ -96,6 +110,7 @@ function get_bind_addr {
     return 0
 }
 
+#TODO: add suse and ubuntu support
 function install_docker_online {
     section "Install docker-ce on deployer server online"
     if [[ ${SERVER_OS} == 'redhat' ]];then
@@ -111,6 +126,7 @@ function install_docker_online {
     check_status $rc "Start docker service"
 }
 
+#TODO: add suse support
 function install_docker_local {
     section "Install docker-ce from local repo"
     if [[ ${SERVER_OS} == 'ubuntu' ]];then
@@ -163,31 +179,38 @@ function kill_containers {
     fi
 }
 
+#This function is for all nodes: deployer, controller and compute.
 function start_package_server {
     section "Start local package repository server"
-    if [[ ${SERVER_OS} == 'ubuntu' ]];then
+    if [ ${TARGET_SERVER_OS} == 'ubuntu' ] ||  [ ${SERVER_OS} == 'ubuntu' ]; then
         docker run -d --name $REPO_SERVER --restart=always -v ${CE_BASE}/OpenStackCE/ubuntu-mirror:/usr/share/nginx/html:ro -p ${REPOSITORY_PORT}:80 $REPO_SERVER_IMG 1>/dev/null
         check_status $?
-    elif [[ ${SERVER_OS} == 'redhat' ]];then
+    elif [ ${TARGET_SERVER_OS} == 'redhat' ] || [ ${SERVER_OS} == 'redhat' ]; then
         docker run -d --name $REPO_SERVER --restart=always -v ${CE_BASE}/OpenStackCE/rhel-repo:/usr/share/nginx/html:ro -p ${REPOSITORY_PORT}:80 $REPO_SERVER_IMG 1>/dev/null
+        check_status $?
+    elif [ ${TARGET_SERVER_OS} == 'suse' ] || [ ${SERVER_OS} == 'suse' ]; then
+        docker run -d --name $REPO_SERVER --restart=always -v ${CE_BASE}/OpenStackCE/sles-repo:/usr/share/nginx/html:ro -p ${REPOSITORY_PORT}:80 $REPO_SERVER_IMG 1>/dev/null
         check_status $?
     fi
 }
 
+#This function is for controller and compute.
 function start_docker_registry {
     section "Start local docker registry server"
     docker run -d --name $DOCKER_REGISTRY --restart=always -v ${CE_BASE}/OpenStackCE/docker-registry:/var/lib/registry -p ${DOCKER_REGISTRY_PORT}:5000 $DOCKER_REGISTRY_IMG 1>/dev/null
     check_status $?
 }
 
+#This function is for controller and compute.
 function start_PYPI_server {
     section "Start local PYPI server"
     docker run -d --name $PYPI_SERVER --restart=always -v ${CE_BASE}/OpenStackCE/pypi:/data/packages -p ${PYPI_PORT}:8080 $PYPI_SERVER_IMG 1>/dev/null
     check_status $?
 }
 
+#This function is for all nodes: deployer, controller and compute and doesn't depend on this current node's OS.
 function generate_local_repo_file {
-    if [[ ${SERVER_OS} == 'ubuntu' ]];then
+    if [ ${TARGET_SERVER_OS} == 'ubuntu' ] || [ ${SERVER_OS} == 'ubuntu' ]; then
         section "Generate sources.list template"
         mkdir -p ${CE_BASE}/OpenStackCE/bootstrap_files/ubuntu
         cp -f ${CE_BASE}/OpenStackCE/kolla-ansible/tools/deployer_for_linuxone/templates/ubuntu/* ${CE_BASE}/OpenStackCE/bootstrap_files/ubuntu
@@ -197,7 +220,7 @@ function generate_local_repo_file {
             exit -1
         fi
         sed -i "s/SERVER:REPO_PORT/${BIND_ADDR}:${REPOSITORY_PORT}/g" ${CE_BASE}/OpenStackCE/bootstrap_files/ubuntu/*list*
-    elif [[ ${SERVER_OS} == 'redhat' ]];then
+    elif [ ${TARGET_SERVER_OS} == 'redhat' ] || [ ${SERVER_OS} == 'redhat' ]; then
         section "Generate local-yum.repo template"
         mkdir -p ${CE_BASE}/OpenStackCE/bootstrap_files/rhel
         cp -f ${CE_BASE}/OpenStackCE/kolla-ansible/tools/deployer_for_linuxone/templates/rhel/* ${CE_BASE}/OpenStackCE/bootstrap_files/rhel
@@ -207,9 +230,20 @@ function generate_local_repo_file {
             exit -1
         fi
         sed -i "s/SERVER:REPO_PORT/${BIND_ADDR}:${REPOSITORY_PORT}/g" ${CE_BASE}/OpenStackCE/bootstrap_files/rhel/*repo*
+    elif [ ${TARGET_SERVER_OS} == 'suse' ] || [ ${SERVER_OS} == 'suse' ]; then
+        section "Generate local-zypper.repo template"
+        mkdir -p ${CE_BASE}/OpenStackCE/bootstrap_files/suse
+        cp -f ${CE_BASE}/OpenStackCE/kolla-ansible/tools/deployer_for_linuxone/templates/sles/* ${CE_BASE}/OpenStackCE/bootstrap_files/sles
+        check_status $? "Copy local-zypper.repo templates"
+        if [[ $? -ne 0 ]]; then
+            echo "Error: generate_local_zypper_file failed!"
+            exit -1
+        fi
+        sed -i "s/SERVER:REPO_PORT/${BIND_ADDR}:${REPOSITORY_PORT}/g" ${CE_BASE}/OpenStackCE/bootstrap_files/sles/*repo*
     fi
 }
 
+# We suppose the deployer is always running on x86, so only copy x86 repos.
 function setup_local_repo {
     section "Setup deployment server to use local package repository"
     suffix=`date +%Y%m%d`
@@ -223,6 +257,9 @@ function setup_local_repo {
     elif [[ ${SERVER_OS} == 'redhat' ]];then
         cp -f ${CE_BASE}/OpenStackCE/bootstrap_files_rhel/local-yum.repo.x86 /etc/yum.repos.d/local-yum.repo
         check_status $? "Setup /etc/yum.repos.d/local-yum.repo"
+    elif [[ ${SERVER_OS} == 'suse' ]];then
+        cp -f ${CE_BASE}/OpenStackCE/bootstrap_files_suse/local-zypper.repo.x86 /etc/zypp/repos.d/local-zypper.repo
+        check_status $? "Setup /etc/zypp/repos.d/local-zypper.repo"
     fi
 }
 
@@ -238,6 +275,7 @@ function generate_pip_conf {
     sed -i "s/PORT/${PYPI_PORT}/g" ${CE_BASE}/OpenStackCE/bootstrap_files/pip.conf
 }
 
+#This function is for all nodes: deployer, controller and compute and doesn't depend on this current node's OS.
 function setup_local_PYPI_server {
     mkdir -p ${HOME}/.pip
     cp -f ${CE_BASE}/OpenStackCE/bootstrap_files/pip.conf ${HOME}/.pip/pip.conf
@@ -330,8 +368,12 @@ EOF
     check_status $? "Add nova-compute.conf into /etc/kolla/config/nova/"
 }
 
+#TODO: make all the work in openstack-ce-presetups.sh done in ansible playbook such as pre-bootstrap.yml
+#      except those MUST be done before ansible e.g. ansible dependent packages installation.
+#      I feel uncomfortable about this. There have already been repo tasks in ansible playbook conflicting with here!
+#This function is for controller and compute only.
 function generate_scripts {
-    section "Generat Script used to setup target nodes to use local repository"
+    section "Generat Script used to setup target nodes (controller and compute) to use local repository"
     CUR_DIR=$(cd "$(dirname ${BASH_SOURCE[0]})" && pwd)
     python_dev_rpm=python-devel-2.7.13-27.1.s390x.rpm
     echo "Copying python devel rpm for suse s390x platform"
@@ -340,6 +382,7 @@ function generate_scripts {
     sources_s390x=$(cat ${CE_BASE}/OpenStackCE/bootstrap_files/ubuntu/sources.list.s390x)
     repo_x86=$(cat ${CE_BASE}/OpenStackCE/bootstrap_files/rhel/local-yum.repo.x86)
     repo_s390x=$(cat ${CE_BASE}/OpenStackCE/bootstrap_files/rhel/local-yum.repo.s390x)
+    zypper_s390x=$(cat ${CE_BASE}/OpenStackCE/bootstrap_files/sles/local-zypper.repo.s390x)
     pip_conf=$(cat ${CE_BASE}/OpenStackCE/bootstrap_files/pip.conf)
     tee /etc/kolla/openstack-ce-presetups.sh 1>/dev/null << EOF
 #!/bin/bash
@@ -371,6 +414,7 @@ elif [ \${os} == 'ubuntu' ]; then
     echo "Installing python-dev on target nodes to be used by ansible..."
     apt-get update && apt-get install -y python-dev 1>/dev/null
 elif [ \${os} == 'suse' ]; then
+    echo "${zypper_s390x}" > /etc/zypp/repos.d/local-zypper.repo
     echo "Installing python2-pip and python-setuptools on target nodes to be used by ansible..."
     zypper addrepo -G https://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_Factory_zSystems/ python-dev
     zypper refresh
@@ -401,27 +445,28 @@ EOF
     check_status $? "generate_scripts"
 }
 
+#This function is for controller and compute.
 function update_global {
     section "Update globals.yml with the local repo info"
-    if [[ ${SERVER_OS} == 'ubuntu' ]]; then
+    if [[ ${TARGET_SERVER_OS} == 'ubuntu' ]]; then
         sed -i "s/LOCAL_DOCKER_REGISTRY/${BIND_ADDR}:${DOCKER_REGISTRY_PORT}/g" /etc/kolla/globals.yml
         check_status $? "Update docker registry info"
         sed -i "s/LOCAL_APT_REPO/${BIND_ADDR}:${REPOSITORY_PORT}/g" /etc/kolla/globals.yml
         check_status $? "Update apt package repo info"
-    elif [[ ${SERVER_OS} == 'redhat' ]]; then
+    elif [[ ${TARGET_SERVER_OS} == 'redhat' ]]; then
         sed -i "s/^#\(docker_yum_url\)/\1/g" /etc/kolla/globals.yml
+        #why only use x86?
         sed -i "s/DOCKER_YUM_REPO/${BIND_ADDR}:${REPOSITORY_PORT}\/x86_64\/docker-ce/g" /etc/kolla/globals.yml
         check_status $? "Update local yum docker repo"
+    elif [[ ${TARGET_SERVER_OS} == 'suse' ]]; then
+        sed -i "s/^#\(docker_zypper_url\)/\1/g" /etc/kolla/globals.yml
+        sed -i "s/DOCKER_ZYPPER_REPO/${BIND_ADDR}:${REPOSITORY_PORT}\/s390x\/containers/g" /etc/kolla/globals.yml
+        check_status $? "Update local zypper docker repo"
     fi
 }
 
-SHORT_OPTS="hor:p:b:d:a:k:s,t,c,g"
-LONG_OPTS="help,online,repo-port:,pypi-port:,docker-registry-port:,base-dir:,bind-addr:,install-docker,setup-repo,install-kolla-ansible,config-kolla-ansible,gen-script"
-ARGS=$(getopt -o "${SHORT_OPTS}" -l "${LONG_OPTS}" --name "$0" -- "$@") || { usage >&2; exit 2; }
-
-eval set -- "$ARGS"
-
 SERVER_OS=''
+TARGET_SERVER_OS=''
 PACKAGE_SOURCE="local"
 REPOSITORY_PORT=8000
 PYPI_PORT=8080
@@ -480,7 +525,8 @@ while [ "$#" -gt 1 ]; do
             INSTALL_KOLLA_ANSIBLE=0
             CONFIG_KOLLA_ANSIBLE=0
             GEN_SCRIPT=0
-            shift 1
+            TARGET_SERVER_OS="$2"
+            shift 2
             ;;
 
     (--install-kolla-ansible|-t)
@@ -546,6 +592,11 @@ get_server_os
 if [[ $? -ne 0 ]]; then
     echo "Error: get_server_os failed!"
     exit -1
+fi
+
+#We assume the controller and compute nodes' OS are the same as deployer's if the user doesn't indicate it.
+if [[ ${TARGET_SERVER_OS} == '' ]]; then
+    TARGET_SERVER_OS=${SERVER_OS}
 fi
 
 #Get deployer ip address
