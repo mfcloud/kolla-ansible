@@ -1,0 +1,5 @@
+[local-zypper]
+name=local-zypper
+baseurl=http://SERVER:REPO_PORT/x86_64
+enabled=1
+gpgcheck=0
