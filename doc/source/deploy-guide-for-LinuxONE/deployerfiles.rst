@@ -27,7 +27,7 @@ Two servers are needed to do the preparation steps:
 - One server on LinuxONE which can be same server as the target compute node.
 
   System requirements:
-   * Ubuntu 16.04/LinuxONE or Red Hat 7.5 with 4.14 alt-kernel/LinuxONE platform
+   * Ubuntu 16.04/LinuxONE or Red Hat 7.5 with 4.14 alt-kernel/LinuxONE platform or SUSE 12SP3/LinuxONE
    * 1 network interface
    * 8GB main memory
    * 10GB disk space
@@ -294,6 +294,38 @@ The following steps required to be done on the x86_64 server.
 
    createrepo /data/OpenStackCE/rhel-repo/x86_64
    createrepo /data/OpenStackCE/rhel-repo/s390x
+
+For SUSE platform of s390x
+--------------------
+
+When we use kolla-ansible to deploy OpenStack cloud, there are several rpm packages required which usually download from website.
+To avoid the Internet requirement in the deploy process, we need to download the required packages to local and serve them from the deployment server.
+
+The following steps required to be done on the x86_64 server (deployer).
+
+- Download all the rpm packages for s390x server from http://download.opensuse.org/repositories/Virtualization:/containers/SLE_12_SP3/ to local directy SLE_12_SP3
+  with directoy hierarchy exactly the same!
+
+- Move all the content to /data/OpenStackCE folder
+
+  ::
+
+   # mkdir /data/OpenStackCE/sles-repo
+   # mkdir /data/OpenStackCE/sles-repo/s390x
+   # mv SLE_12_SP3/* /data/OpenStackCE/sles-repo/s390x
+
+
+- Install createrepo tool
+
+  ::
+
+   yum install createrepo or apt install createrepo
+
+- Create repodata for s390x
+
+  ::
+
+   createrepo /data/OpenStackCE/sles-repo/s390x
 
 
 Download required PYPI packages
